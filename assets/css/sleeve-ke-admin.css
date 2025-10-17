@@ -408,3 +408,72 @@
 .sleeve-ke-job-form .required {
     color: #d63638;
 }
+
+/* Job Details Grid Layout */
+.job-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.job-details-main {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 4px;
+    border: 1px solid #e1e1e1;
+}
+
+.job-details-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 4px;
+    border: 1px solid #e1e1e1;
+}
+
+.job-section {
+    margin-bottom: 30px;
+}
+
+.job-section:last-child {
+    margin-bottom: 0;
+}
+
+.job-section h3 {
+    margin: 0 0 15px 0;
+    color: #1d2327;
+    font-size: 16px;
+    font-weight: 600;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #135e96;
+}
+
+.job-content {
+    line-height: 1.6;
+    color: #50575e;
+}
+
+.job-content p {
+    margin-bottom: 15px;
+}
+
+.employer-type {
+    color: #787c82;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Employer Type Indicator */
+.employer-type-indicator {
+    font-size: 11px;
+    color: #787c82;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+    .job-details-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}

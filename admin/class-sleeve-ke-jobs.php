@@ -103,6 +103,19 @@ class Sleeve_KE_Jobs {
                             <?php endforeach; ?>
                         </select>
                         
+                        <select name="sector">
+                            <option value=""><?php esc_html_e( 'All Sectors', 'sleeve-ke' ); ?></option>
+                            <?php
+                            $sectors = $this->get_sectors();
+                            foreach ( $sectors as $sector_key => $sector_label ) :
+                            ?>
+                                <option value="<?php echo esc_attr( $sector_key ); ?>" 
+                                        <?php selected( isset( $_GET['sector'] ) ? $_GET['sector'] : '', $sector_key ); ?>>
+                                    <?php echo esc_html( $sector_label ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        
                         <?php submit_button( __( 'Filter', 'sleeve-ke' ), 'secondary', 'filter', false ); ?>
                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=sleeve-ke-jobs' ) ); ?>" class="button">
                             <?php esc_html_e( 'Clear', 'sleeve-ke' ); ?>
@@ -140,6 +153,7 @@ class Sleeve_KE_Jobs {
                             <?php endif; ?>
                             <th class="manage-column"><?php esc_html_e( 'Job Title', 'sleeve-ke' ); ?></th>
                             <th class="manage-column"><?php esc_html_e( 'Company', 'sleeve-ke' ); ?></th>
+                            <th class="manage-column"><?php esc_html_e( 'Sector', 'sleeve-ke' ); ?></th>
                             <th class="manage-column"><?php esc_html_e( 'Location', 'sleeve-ke' ); ?></th>
                             <th class="manage-column"><?php esc_html_e( 'Type', 'sleeve-ke' ); ?></th>
                             <th class="manage-column"><?php esc_html_e( 'Salary', 'sleeve-ke' ); ?></th>
@@ -152,7 +166,7 @@ class Sleeve_KE_Jobs {
                     <tbody>
                         <?php if ( empty( $jobs ) ) : ?>
                             <tr>
-                                <td colspan="<?php echo $this->user_can_manage_all_jobs() ? '10' : '9'; ?>" class="no-items">
+                                <td colspan="<?php echo $this->user_can_manage_all_jobs() ? '11' : '10'; ?>" class="no-items">
                                     <?php esc_html_e( 'No jobs found.', 'sleeve-ke' ); ?>
                                     <?php if ( $can_add_jobs ) : ?>
                                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=sleeve-ke-jobs&action=add' ) ); ?>">
@@ -185,7 +199,19 @@ class Sleeve_KE_Jobs {
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td><?php echo esc_html( $job['company'] ); ?></td>
+                                    <td>
+                                        <?php echo esc_html( $job['company'] ); ?>
+                                        <div class="employer-type-indicator">
+                                            <?php echo esc_html( $job['employer_type'] === 'individual' ? __( '(Individual)', 'sleeve-ke' ) : __( '(Org)', 'sleeve-ke' ) ); ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                        $sectors = $this->get_sectors();
+                                        $sector_display = isset( $sectors[ $job['sector'] ] ) ? $sectors[ $job['sector'] ] : ucfirst( $job['sector'] );
+                                        echo esc_html( $sector_display );
+                                        ?>
+                                    </td>
                                     <td><?php echo esc_html( $job['location'] ); ?></td>
                                     <td><?php echo esc_html( $job['job_type'] ); ?></td>
                                     <td>
@@ -316,12 +342,13 @@ class Sleeve_KE_Jobs {
         $defaults = array(
             'id' => 0,
             'title' => '',
+            'sector' => '',
             'description' => '',
             'requirements' => '',
             'company' => '',
+            'employer_type' => 'organization',
             'location' => '',
             'job_type' => 'full-time',
-            'sector' => '',
             'experience_level' => '',
             'salary_min' => '',
             'salary_max' => '',
@@ -356,15 +383,48 @@ class Sleeve_KE_Jobs {
                                 </th>
                                 <td>
                                     <input type="text" id="job_title" name="job_title" value="<?php echo esc_attr( $job_data['title'] ); ?>" class="regular-text" required />
+                                    <p class="description"><?php esc_html_e( 'Include sector in title (e.g., "Senior Developer - Technology Sector")', 'sleeve-ke' ); ?></p>
                                 </td>
                             </tr>
                             
                             <tr>
                                 <th scope="row">
-                                    <label for="company"><?php esc_html_e( 'Company', 'sleeve-ke' ); ?> <span class="required">*</span></label>
+                                    <label for="sector"><?php esc_html_e( 'Sector', 'sleeve-ke' ); ?> <span class="required">*</span></label>
+                                </th>
+                                <td>
+                                    <select id="sector" name="sector" required>
+                                        <option value=""><?php esc_html_e( 'Select Sector', 'sleeve-ke' ); ?></option>
+                                        <?php
+                                        $sectors = $this->get_sectors();
+                                        foreach ( $sectors as $sector_key => $sector_label ) :
+                                        ?>
+                                            <option value="<?php echo esc_attr( $sector_key ); ?>" <?php selected( $job_data['sector'], $sector_key ); ?>>
+                                                <?php echo esc_html( $sector_label ); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <th scope="row">
+                                    <label for="company"><?php esc_html_e( 'Employer Name', 'sleeve-ke' ); ?> <span class="required">*</span></label>
                                 </th>
                                 <td>
                                     <input type="text" id="company" name="company" value="<?php echo esc_attr( $job_data['company'] ); ?>" class="regular-text" required />
+                                    <p class="description"><?php esc_html_e( 'Organization name or Individual name (e.g., "Tech Corp" or "Dr. John Doe")', 'sleeve-ke' ); ?></p>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <th scope="row">
+                                    <label for="employer_type"><?php esc_html_e( 'Employer Type', 'sleeve-ke' ); ?></label>
+                                </th>
+                                <td>
+                                    <select id="employer_type" name="employer_type">
+                                        <option value="organization" <?php selected( $job_data['employer_type'], 'organization' ); ?>><?php esc_html_e( 'Organization/Company', 'sleeve-ke' ); ?></option>
+                                        <option value="individual" <?php selected( $job_data['employer_type'], 'individual' ); ?>><?php esc_html_e( 'Individual', 'sleeve-ke' ); ?></option>
+                                    </select>
                                 </td>
                             </tr>
                             
@@ -396,24 +456,7 @@ class Sleeve_KE_Jobs {
                                 </td>
                             </tr>
                             
-                            <tr>
-                                <th scope="row">
-                                    <label for="sector"><?php esc_html_e( 'Sector', 'sleeve-ke' ); ?></label>
-                                </th>
-                                <td>
-                                    <select id="sector" name="sector">
-                                        <option value=""><?php esc_html_e( 'Select Sector', 'sleeve-ke' ); ?></option>
-                                        <?php
-                                        $sectors = $this->get_sectors();
-                                        foreach ( $sectors as $sector_key => $sector_label ) :
-                                        ?>
-                                            <option value="<?php echo esc_attr( $sector_key ); ?>" <?php selected( $job_data['sector'], $sector_key ); ?>>
-                                                <?php echo esc_html( $sector_label ); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
+
                             
                             <tr>
                                 <th scope="row">
@@ -627,17 +670,25 @@ class Sleeve_KE_Jobs {
      */
     public function get_sectors() {
         return array(
-            'technology' => __( 'Technology', 'sleeve-ke' ),
-            'healthcare' => __( 'Healthcare', 'sleeve-ke' ),
+            'technology' => __( 'Technology & IT', 'sleeve-ke' ),
+            'healthcare' => __( 'Healthcare & Medical', 'sleeve-ke' ),
             'finance' => __( 'Finance & Banking', 'sleeve-ke' ),
-            'education' => __( 'Education', 'sleeve-ke' ),
-            'manufacturing' => __( 'Manufacturing', 'sleeve-ke' ),
+            'education' => __( 'Education & Training', 'sleeve-ke' ),
+            'manufacturing' => __( 'Manufacturing & Production', 'sleeve-ke' ),
             'retail' => __( 'Retail & Sales', 'sleeve-ke' ),
             'hospitality' => __( 'Hospitality & Tourism', 'sleeve-ke' ),
-            'agriculture' => __( 'Agriculture', 'sleeve-ke' ),
-            'construction' => __( 'Construction', 'sleeve-ke' ),
-            'telecommunications' => __( 'Telecommunications', 'sleeve-ke' ),
-            'legal' => __( 'Legal Services', 'sleeve-ke' ),
+            'agriculture' => __( 'Agriculture & Farming', 'sleeve-ke' ),
+            'construction' => __( 'Construction & Real Estate', 'sleeve-ke' ),
+            'telecommunications' => __( 'Telecommunications & Media', 'sleeve-ke' ),
+            'legal' => __( 'Legal & Professional Services', 'sleeve-ke' ),
+            'marketing' => __( 'Marketing & Advertising', 'sleeve-ke' ),
+            'business' => __( 'Business & Consulting', 'sleeve-ke' ),
+            'nonprofit' => __( 'Non-Profit & NGO', 'sleeve-ke' ),
+            'government' => __( 'Government & Public Sector', 'sleeve-ke' ),
+            'transport' => __( 'Transportation & Logistics', 'sleeve-ke' ),
+            'energy' => __( 'Energy & Environment', 'sleeve-ke' ),
+            'arts' => __( 'Arts & Creative', 'sleeve-ke' ),
+            'sports' => __( 'Sports & Recreation', 'sleeve-ke' ),
             'other' => __( 'Other', 'sleeve-ke' )
         );
     }
@@ -650,68 +701,119 @@ class Sleeve_KE_Jobs {
         $search = isset( $_GET['search'] ) ? sanitize_text_field( $_GET['search'] ) : '';
         $status_filter = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : '';
         $type_filter = isset( $_GET['job_type'] ) ? sanitize_text_field( $_GET['job_type'] ) : '';
+        $sector_filter = isset( $_GET['sector'] ) ? sanitize_text_field( $_GET['sector'] ) : '';
 
         // Mock data - in real implementation, this would fetch from database
         $all_jobs = array(
             array(
                 'id' => 1,
-                'title' => 'Senior PHP Developer',
+                'title' => 'Senior PHP Developer - Technology Sector',
+                'sector' => 'technology',
+                'description' => 'We are seeking a highly skilled Senior PHP Developer to join our dynamic technology team. You will be responsible for developing and maintaining web applications, collaborating with cross-functional teams, and mentoring junior developers.',
                 'company' => 'Tech Solutions Ltd',
+                'employer_type' => 'organization',
                 'location' => 'Nairobi, Kenya',
                 'job_type' => 'Full-Time',
-                'sector' => 'technology',
+                'experience_level' => 'senior',
+                'requirements' => 'Bachelor\'s degree in Computer Science, 5+ years PHP experience, Laravel framework expertise, MySQL database skills, Git version control knowledge.',
+                'benefits' => 'Health insurance, Flexible working hours, Remote work options, Professional development budget, Annual bonus',
                 'salary_min' => 150000,
                 'salary_max' => 300000,
                 'currency' => 'KES',
+                'remote_work' => 'hybrid',
                 'status' => 'published',
                 'applications_count' => 24,
                 'posted_date' => '2025-10-10',
+                'expires_at' => '2025-11-10',
                 'employer_id' => 1
             ),
             array(
                 'id' => 2,
-                'title' => 'Frontend Developer',
+                'title' => 'Frontend Developer - Creative Technology',
+                'sector' => 'technology',
+                'description' => 'Join our creative team as a Frontend Developer where you\'ll build beautiful, responsive user interfaces and collaborate with designers to bring innovative digital experiences to life.',
                 'company' => 'Creative Agency',
+                'employer_type' => 'organization',
                 'location' => 'Remote',
                 'job_type' => 'Full-Time',
-                'sector' => 'technology',
+                'experience_level' => 'mid',
+                'requirements' => 'Strong JavaScript, HTML5, CSS3 skills, React or Vue.js experience, Responsive design expertise, UI/UX collaboration experience.',
+                'benefits' => 'Fully remote work, Creative freedom, Latest equipment, Team retreats, Learning stipend',
                 'salary_min' => 120000,
                 'salary_max' => 250000,
                 'currency' => 'KES',
+                'remote_work' => 'full',
                 'status' => 'published',
                 'applications_count' => 18,
                 'posted_date' => '2025-10-08',
+                'expires_at' => '2025-11-08',
                 'employer_id' => 2
             ),
             array(
                 'id' => 3,
-                'title' => 'Project Manager',
+                'title' => 'Project Manager - Business Development',
+                'sector' => 'business',
+                'description' => 'Seeking an experienced Project Manager to lead cross-functional teams, manage project timelines, and ensure successful delivery of business initiatives.',
                 'company' => 'Business Corp',
+                'employer_type' => 'organization',
                 'location' => 'Kampala, Uganda',
                 'job_type' => 'Full-Time',
-                'sector' => 'other',
+                'experience_level' => 'senior',
+                'requirements' => 'PMP certification preferred, 5+ years project management experience, Agile/Scrum methodology, Strong communication skills.',
+                'benefits' => 'Competitive salary, Health coverage, Professional certifications, Performance bonuses, Career advancement',
                 'salary_min' => 200000,
                 'salary_max' => 400000,
                 'currency' => 'UGX',
+                'remote_work' => 'no',
                 'status' => 'published',
                 'applications_count' => 12,
                 'posted_date' => '2025-10-05',
+                'expires_at' => '2025-12-05',
                 'employer_id' => 3
             ),
             array(
                 'id' => 4,
-                'title' => 'Marketing Intern',
+                'title' => 'Marketing Intern - Digital Marketing',
+                'sector' => 'marketing',
+                'description' => 'Great opportunity for a Marketing student or recent graduate to gain hands-on experience in digital marketing, social media management, and campaign development.',
                 'company' => 'StartUp Inc',
+                'employer_type' => 'organization',
                 'location' => 'Dar es Salaam, Tanzania',
                 'job_type' => 'Internship',
-                'sector' => 'retail',
+                'experience_level' => 'entry',
+                'requirements' => 'Currently studying Marketing/Business or recent graduate, Social media knowledge, Basic graphic design skills, Eager to learn.',
+                'benefits' => 'Mentorship program, Certificate of completion, Networking opportunities, Potential full-time offer',
                 'salary_min' => 50000,
                 'salary_max' => 80000,
                 'currency' => 'TZS',
+                'remote_work' => 'hybrid',
                 'status' => 'draft',
                 'applications_count' => 0,
                 'posted_date' => '2025-10-15',
+                'expires_at' => '2025-11-30',
                 'employer_id' => 1
+            ),
+            array(
+                'id' => 5,
+                'title' => 'Freelance Graphic Designer - Healthcare Sector',
+                'sector' => 'healthcare',
+                'description' => 'Independent healthcare consultant seeking a talented graphic designer for ongoing branding and marketing materials for medical practices.',
+                'company' => 'Dr. Sarah Kimani (Individual)',
+                'employer_type' => 'individual',
+                'location' => 'Mombasa, Kenya',
+                'job_type' => 'Freelance',
+                'experience_level' => 'mid',
+                'requirements' => 'Portfolio of healthcare/medical designs, Adobe Creative Suite proficiency, Brand development experience, Professional communication.',
+                'benefits' => 'Flexible schedule, Project-based pay, Creative autonomy, Potential long-term partnership',
+                'salary_min' => 25000,
+                'salary_max' => 50000,
+                'currency' => 'KES',
+                'remote_work' => 'full',
+                'status' => 'published',
+                'applications_count' => 8,
+                'posted_date' => '2025-10-12',
+                'expires_at' => '2025-11-12',
+                'employer_id' => 4
             )
         );
 
@@ -742,6 +844,12 @@ class Sleeve_KE_Jobs {
         if ( ! empty( $type_filter ) ) {
             $filtered_jobs = array_filter( $filtered_jobs, function( $job ) use ( $type_filter ) {
                 return strtolower( str_replace( '-', '-', $job['job_type'] ) ) === $type_filter;
+            });
+        }
+
+        if ( ! empty( $sector_filter ) ) {
+            $filtered_jobs = array_filter( $filtered_jobs, function( $job ) use ( $sector_filter ) {
+                return $job['sector'] === $sector_filter;
             });
         }
 
@@ -864,32 +972,124 @@ class Sleeve_KE_Jobs {
                     </div>
                 </div>
                 
-                <table class="form-table">
-                    <tr>
-                        <th><?php esc_html_e( 'Company', 'sleeve-ke' ); ?></th>
-                        <td><?php echo esc_html( $job['company'] ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Location', 'sleeve-ke' ); ?></th>
-                        <td><?php echo esc_html( $job['location'] ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Job Type', 'sleeve-ke' ); ?></th>
-                        <td><?php echo esc_html( $job['job_type'] ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Applications', 'sleeve-ke' ); ?></th>
-                        <td>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=sleeve-ke-applications&job_id=' . $job['id'] ) ); ?>">
-                                <?php echo esc_html( $job['applications_count'] ); ?> <?php esc_html_e( 'applications', 'sleeve-ke' ); ?>
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Posted Date', 'sleeve-ke' ); ?></th>
-                        <td><?php echo esc_html( $job['posted_date'] ); ?></td>
-                    </tr>
-                </table>
+                <div class="job-details-grid">
+                    <div class="job-details-main">
+                        <h3><?php esc_html_e( 'Job Information', 'sleeve-ke' ); ?></h3>
+                        <table class="form-table">
+                            <tr>
+                                <th><?php esc_html_e( 'Sector', 'sleeve-ke' ); ?></th>
+                                <td>
+                                    <?php 
+                                    $sectors = $this->get_sectors();
+                                    echo esc_html( isset( $sectors[ $job['sector'] ] ) ? $sectors[ $job['sector'] ] : $job['sector'] );
+                                    ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Employer', 'sleeve-ke' ); ?></th>
+                                <td>
+                                    <?php echo esc_html( $job['company'] ); ?>
+                                    <span class="employer-type">
+                                        (<?php echo esc_html( $job['employer_type'] === 'individual' ? __( 'Individual', 'sleeve-ke' ) : __( 'Organization', 'sleeve-ke' ) ); ?>)
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Location', 'sleeve-ke' ); ?></th>
+                                <td><?php echo esc_html( $job['location'] ); ?></td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Job Type', 'sleeve-ke' ); ?></th>
+                                <td><?php echo esc_html( $job['job_type'] ); ?></td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Experience Level', 'sleeve-ke' ); ?></th>
+                                <td>
+                                    <?php 
+                                    $levels = array(
+                                        'entry' => __( 'Entry Level', 'sleeve-ke' ),
+                                        'mid' => __( 'Mid Level', 'sleeve-ke' ),
+                                        'senior' => __( 'Senior Level', 'sleeve-ke' ),
+                                        'executive' => __( 'Executive Level', 'sleeve-ke' )
+                                    );
+                                    echo esc_html( isset( $levels[ $job['experience_level'] ] ) ? $levels[ $job['experience_level'] ] : $job['experience_level'] );
+                                    ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Remote Work', 'sleeve-ke' ); ?></th>
+                                <td>
+                                    <?php 
+                                    $remote_options = array(
+                                        'no' => __( 'No Remote Work', 'sleeve-ke' ),
+                                        'hybrid' => __( 'Hybrid', 'sleeve-ke' ),
+                                        'full' => __( 'Fully Remote', 'sleeve-ke' )
+                                    );
+                                    echo esc_html( isset( $remote_options[ $job['remote_work'] ] ) ? $remote_options[ $job['remote_work'] ] : $job['remote_work'] );
+                                    ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Salary Range', 'sleeve-ke' ); ?></th>
+                                <td>
+                                    <?php if ( ! empty( $job['salary_min'] ) && ! empty( $job['salary_max'] ) ) : ?>
+                                        <?php echo esc_html( number_format( $job['salary_min'] ) . ' - ' . number_format( $job['salary_max'] ) . ' ' . $job['currency'] ); ?>
+                                    <?php elseif ( ! empty( $job['salary_min'] ) ) : ?>
+                                        <?php echo esc_html( number_format( $job['salary_min'] ) . '+ ' . $job['currency'] ); ?>
+                                    <?php else : ?>
+                                        <em><?php esc_html_e( 'Not specified', 'sleeve-ke' ); ?></em>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><?php esc_html_e( 'Posted Date', 'sleeve-ke' ); ?></th>
+                                <td><?php echo esc_html( date( 'F j, Y', strtotime( $job['posted_date'] ) ) ); ?></td>
+                            </tr>
+                            <?php if ( ! empty( $job['expires_at'] ) ) : ?>
+                            <tr>
+                                <th><?php esc_html_e( 'Expires On', 'sleeve-ke' ); ?></th>
+                                <td><?php echo esc_html( date( 'F j, Y', strtotime( $job['expires_at'] ) ) ); ?></td>
+                            </tr>
+                            <?php endif; ?>
+                            <tr>
+                                <th><?php esc_html_e( 'Applications', 'sleeve-ke' ); ?></th>
+                                <td>
+                                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=sleeve-ke-applications&job_id=' . $job['id'] ) ); ?>" class="button button-secondary">
+                                        <span class="dashicons dashicons-groups"></span>
+                                        <?php echo esc_html( $job['applications_count'] ); ?> <?php esc_html_e( 'applications', 'sleeve-ke' ); ?>
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="job-details-content">
+                        <div class="job-section">
+                            <h3><?php esc_html_e( 'Job Description', 'sleeve-ke' ); ?></h3>
+                            <div class="job-content">
+                                <?php echo wp_kses_post( wpautop( $job['description'] ) ); ?>
+                            </div>
+                        </div>
+                        
+                        <?php if ( ! empty( $job['requirements'] ) ) : ?>
+                        <div class="job-section">
+                            <h3><?php esc_html_e( 'Requirements', 'sleeve-ke' ); ?></h3>
+                            <div class="job-content">
+                                <?php echo wp_kses_post( wpautop( $job['requirements'] ) ); ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ( ! empty( $job['benefits'] ) ) : ?>
+                        <div class="job-section">
+                            <h3><?php esc_html_e( 'Benefits', 'sleeve-ke' ); ?></h3>
+                            <div class="job-content">
+                                <?php echo wp_kses_post( wpautop( $job['benefits'] ) ); ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
         </div>
         <?php
