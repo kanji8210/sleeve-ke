@@ -103,7 +103,7 @@ class Sleeve_KE_Admin {
             'sleeve-ke',
             __( 'Jobs', 'sleeve-ke' ),
             __( 'Jobs', 'sleeve-ke' ),
-            'manage_jobs',
+            'manage_applications',
             'sleeve-ke-jobs',
             array( $this, 'display_jobs' )
         );
@@ -113,7 +113,7 @@ class Sleeve_KE_Admin {
             'sleeve-ke',
             __( 'Candidates', 'sleeve-ke' ),
             __( 'Candidates', 'sleeve-ke' ),
-            'manage_candidates',
+            'manage_applications',
             'sleeve-ke-candidates',
             array( $this, 'display_candidates' )
         );
@@ -123,9 +123,19 @@ class Sleeve_KE_Admin {
             'sleeve-ke',
             __( 'Employers', 'sleeve-ke' ),
             __( 'Employers', 'sleeve-ke' ),
-            'manage_employers',
+            'manage_applications',
             'sleeve-ke-employers',
             array( $this, 'display_employers' )
+        );
+
+        // Countries submenu
+        add_submenu_page(
+            'sleeve-ke',
+            __( 'Countries', 'sleeve-ke' ),
+            __( 'Countries', 'sleeve-ke' ),
+            'manage_applications',
+            'sleeve-ke-countries',
+            array( $this, 'display_countries' )
         );
 
         // Payments submenu
@@ -133,7 +143,7 @@ class Sleeve_KE_Admin {
             'sleeve-ke',
             __( 'Payments', 'sleeve-ke' ),
             __( 'Payments', 'sleeve-ke' ),
-            'manage_payments',
+            'manage_applications',
             'sleeve-ke-payments',
             array( $this, 'display_payments' )
         );
@@ -220,6 +230,87 @@ class Sleeve_KE_Admin {
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <p><?php esc_html_e( 'Manage employers here.', 'sleeve-ke' ); ?></p>
             <!-- Employers list table will be implemented here -->
+        </div>
+        <?php
+    }
+
+    /**
+     * Display the countries management page.
+     */
+    public function display_countries() {
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <p><?php esc_html_e( 'Manage countries and locations here.', 'sleeve-ke' ); ?></p>
+            
+            <div class="sleeve-ke-countries">
+                <h2><?php esc_html_e( 'Countries List', 'sleeve-ke' ); ?></h2>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Country', 'sleeve-ke' ); ?></th>
+                            <th><?php esc_html_e( 'Region', 'sleeve-ke' ); ?></th>
+                            <th><?php esc_html_e( 'Status', 'sleeve-ke' ); ?></th>
+                            <th><?php esc_html_e( 'Actions', 'sleeve-ke' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $countries = array(
+                            array( 'name' => 'Kenya', 'region' => 'East Africa', 'status' => 'Active' ),
+                            array( 'name' => 'Uganda', 'region' => 'East Africa', 'status' => 'Active' ),
+                            array( 'name' => 'Tanzania', 'region' => 'East Africa', 'status' => 'Active' ),
+                            array( 'name' => 'Rwanda', 'region' => 'East Africa', 'status' => 'Active' ),
+                            array( 'name' => 'Ethiopia', 'region' => 'East Africa', 'status' => 'Active' ),
+                            array( 'name' => 'Other', 'region' => 'International', 'status' => 'Active' ),
+                        );
+                        
+                        foreach ( $countries as $country ) :
+                        ?>
+                        <tr>
+                            <td><?php echo esc_html( $country['name'] ); ?></td>
+                            <td><?php echo esc_html( $country['region'] ); ?></td>
+                            <td><span class="status-active"><?php echo esc_html( $country['status'] ); ?></span></td>
+                            <td>
+                                <button class="button button-small"><?php esc_html_e( 'Edit', 'sleeve-ke' ); ?></button>
+                                <button class="button button-small"><?php esc_html_e( 'Manage Cities', 'sleeve-ke' ); ?></button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                
+                <br>
+                <h3><?php esc_html_e( 'Add New Country', 'sleeve-ke' ); ?></h3>
+                <form method="post" action="">
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="country_name"><?php esc_html_e( 'Country Name', 'sleeve-ke' ); ?></label>
+                            </th>
+                            <td>
+                                <input type="text" id="country_name" name="country_name" class="regular-text" required />
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="country_region"><?php esc_html_e( 'Region', 'sleeve-ke' ); ?></label>
+                            </th>
+                            <td>
+                                <select id="country_region" name="country_region" required>
+                                    <option value=""><?php esc_html_e( 'Select Region', 'sleeve-ke' ); ?></option>
+                                    <option value="East Africa"><?php esc_html_e( 'East Africa', 'sleeve-ke' ); ?></option>
+                                    <option value="West Africa"><?php esc_html_e( 'West Africa', 'sleeve-ke' ); ?></option>
+                                    <option value="North Africa"><?php esc_html_e( 'North Africa', 'sleeve-ke' ); ?></option>
+                                    <option value="Southern Africa"><?php esc_html_e( 'Southern Africa', 'sleeve-ke' ); ?></option>
+                                    <option value="International"><?php esc_html_e( 'International', 'sleeve-ke' ); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+                    </table>
+                    <?php submit_button( __( 'Add Country', 'sleeve-ke' ) ); ?>
+                </form>
+            </div>
         </div>
         <?php
     }
