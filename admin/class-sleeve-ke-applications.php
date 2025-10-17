@@ -18,7 +18,8 @@ class Sleeve_KE_Applications {
      * Initialize the class and set its properties.
      */
     public function __construct() {
-        // Constructor can be used for initialization if needed
+        // Hook for when new applications are submitted
+        add_action( 'sleeve_ke_new_application_submitted', array( $this, 'handle_new_application_notification' ), 10, 1 );
     }
 
     /**
@@ -460,6 +461,27 @@ class Sleeve_KE_Applications {
         //     array( '%d' )
         // );
         
+        // Send notification for status update
+        $status_message = '';
+        switch ( $status ) {
+            case 'approved':
+                $status_message = __( 'Congratulations! Your application has been approved and you may be contacted soon for next steps.', 'sleeve-ke' );
+                break;
+            case 'rejected':
+                $status_message = __( 'Thank you for your interest. Unfortunately, we have decided to move forward with other candidates at this time.', 'sleeve-ke' );
+                break;
+            case 'interviewing':
+                $status_message = __( 'Great news! Your application has moved to the interview stage. Someone will contact you soon to schedule an interview.', 'sleeve-ke' );
+                break;
+            case 'on_hold':
+                $status_message = __( 'Your application is currently on hold. We will keep you updated as the situation develops.', 'sleeve-ke' );
+                break;
+        }
+        
+        $this->send_application_notification( $application_id, 'status_update', array(
+            'status_message' => $status_message
+        ) );
+        
         wp_send_json_success( array( 
             'message' => __( 'Application status updated successfully', 'sleeve-ke' ),
             'application_id' => $application_id,
@@ -560,5 +582,142 @@ class Sleeve_KE_Applications {
             </div>
         </div>
         <?php
+    }
+
+    /**
+     * Send application notifications
+     */
+    public function send_application_notification( $application_id, $type, $additional_data = array() ) {
+        // Get notifications manager
+        $notifications_manager = $this->get_notifications_manager();
+        if ( ! $notifications_manager ) {
+            return false;
+        }
+
+        // Get application data (mock for now)
+        $applications = $this->get_applications_data();
+        $application = null;
+        
+        foreach ( $applications as $app ) {
+            if ( $app['id'] == $application_id ) {
+                $application = $app;
+                break;
+            }
+        }
+        
+        if ( ! $application ) {
+            return false;
+        }
+
+        $variables = array(
+            'candidate_name' => $application['candidate_name'],
+            'job_title' => $application['job_title'],
+            'company_name' => $application['company_name'],
+            'application_date' => $application['applied_date'],
+            'status' => $application['status'],
+            'status_message' => $additional_data['status_message'] ?? ''
+        );
+
+        $result = false;
+
+        switch ( $type ) {
+            case 'application_received':
+                // Send confirmation to candidate
+                $result = $notifications_manager->send_notification( 
+                    'application_received_candidate', 
+                    $application['candidate_email'], 
+                    $variables 
+                );
+                
+                // Send notification to employer
+                $notifications_manager->send_notification( 
+                    'application_received_employer', 
+                    $application['employer_email'], 
+                    array_merge( $variables, array( 'employer_name' => $application['company_name'] ) )
+                );
+                break;
+
+            case 'status_update':
+                // Send status update to candidate
+                $result = $notifications_manager->send_notification( 
+                    'application_status_update', 
+                    $application['candidate_email'], 
+                    $variables 
+                );
+                break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Handle new application notification
+     */
+    public function handle_new_application_notification( $application_id ) {
+        // Send application received notifications
+        $this->send_application_notification( $application_id, 'application_received' );
+        
+        // Send admin notification if enabled
+        if ( get_option( 'sleeve_ke_admin_new_application', 1 ) ) {
+            $this->send_admin_notification( $application_id, 'new_application' );
+        }
+    }
+
+    /**
+     * Send admin notification
+     */
+    private function send_admin_notification( $application_id, $type ) {
+        $notifications_manager = $this->get_notifications_manager();
+        if ( ! $notifications_manager ) {
+            return false;
+        }
+
+        $admin_email = get_option( 'admin_email' );
+        
+        // Get application data
+        $applications = $this->get_applications_data();
+        $application = null;
+        
+        foreach ( $applications as $app ) {
+            if ( $app['id'] == $application_id ) {
+                $application = $app;
+                break;
+            }
+        }
+        
+        if ( ! $application ) {
+            return false;
+        }
+
+        $variables = array(
+            'candidate_name' => $application['candidate_name'],
+            'job_title' => $application['job_title'],
+            'company_name' => $application['company_name'],
+            'application_date' => $application['applied_date']
+        );
+
+        return $notifications_manager->send_notification( 
+            'admin_notification', 
+            $admin_email, 
+            $variables 
+        );
+    }
+
+    /**
+     * Get notifications manager instance
+     */
+    private function get_notifications_manager() {
+        // Try to get notifications manager from global admin instance
+        global $sleeve_ke_admin;
+        if ( isset( $sleeve_ke_admin ) && property_exists( $sleeve_ke_admin, 'notifications_manager' ) ) {
+            return $sleeve_ke_admin->notifications_manager;
+        }
+        
+        // Fallback: load notifications manager manually
+        if ( class_exists( 'Sleeve_KE_Notifications' ) ) {
+            return new Sleeve_KE_Notifications();
+        }
+        
+        return false;
     }
 }

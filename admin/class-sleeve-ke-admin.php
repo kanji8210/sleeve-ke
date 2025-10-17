@@ -45,6 +45,11 @@ class Sleeve_KE_Admin {
     private $employers_manager;
 
     /**
+     * The notifications manager instance.
+     */
+    private $notifications_manager;
+
+    /**
      * Initialize the class and set its properties.
      */
     public function __construct( $plugin_name, $version ) {
@@ -66,12 +71,18 @@ class Sleeve_KE_Admin {
         // Load employers manager
         require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-employers.php';
         $this->employers_manager = new Sleeve_KE_Employers();
+        
+        // Load notifications manager
+        require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-notifications.php';
+        $this->notifications_manager = new Sleeve_KE_Notifications();
 
         // Add AJAX hooks
         add_action( 'wp_ajax_update_application_status', array( $this->applications_manager, 'ajax_update_application_status' ) );
         add_action( 'wp_ajax_update_job_status', array( $this->jobs_manager, 'ajax_update_job_status' ) );
         add_action( 'wp_ajax_update_candidate_status', array( $this->candidates_manager, 'ajax_update_candidate_status' ) );
         add_action( 'wp_ajax_update_employer_status', array( $this->employers_manager, 'ajax_update_employer_status' ) );
+        add_action( 'wp_ajax_view_email_content', array( $this->notifications_manager, 'ajax_view_email_content' ) );
+        add_action( 'wp_ajax_resend_email', array( $this->notifications_manager, 'ajax_resend_email' ) );
     }
 
     /**
@@ -197,6 +208,16 @@ class Sleeve_KE_Admin {
                 array( $this, 'display_employers' )
             );
 
+            // Notifications submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Email Notifications', 'sleeve-ke' ),
+                __( 'Notifications', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-notifications',
+                array( $this, 'display_notifications' )
+            );
+
             // Countries submenu
             add_submenu_page(
                 'sleeve-ke',
@@ -308,6 +329,13 @@ class Sleeve_KE_Admin {
      */
     public function display_employers() {
         $this->employers_manager->display_page();
+    }
+
+    /**
+     * Display the notifications management page.
+     */
+    public function display_notifications() {
+        $this->notifications_manager->display_page();
     }
 
     /**
