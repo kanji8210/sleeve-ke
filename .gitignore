@@ -4,11 +4,15 @@ wp-config.php
 wp-content/uploads/
 wp-content/blogs.dir/
 wp-content/upgrade/
+wp-content/upgrade/*
 wp-content/backup-db/
+wp-content/backup-db/*
 wp-content/advanced-cache.php
 wp-content/wp-cache-config.php
 wp-content/cache/
+wp-content/cache/*
 wp-content/cache/supercache/
+wp-content/backups/*
 
 # Node
 node_modules/
@@ -27,14 +31,16 @@ vendor/
 ehthumbs.db
 Thumbs.db
 
-# IDE
+# IDE and editors
 .idea/
 .vscode/
+*.sublime-project
+*.sublime-workspace
 *.swp
 *.swo
 *~
 
-# Build artifacts
+# Build files
 dist/
 build/
 *.zip
@@ -46,3 +52,5 @@ logs/
 # Temporary files
 tmp/
 temp/
+*.tmp
+*.temp

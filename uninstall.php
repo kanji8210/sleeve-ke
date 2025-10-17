@@ -1,29 +1,29 @@
 <?php
 /**
- * Fired when the plugin is uninstalled.
+ * Fired when the plugin is uninstalled
  *
- * @package    Sleeve_KE
+ * @package Sleeve_KE
  */
 
-// If uninstall not called from WordPress, then exit.
-if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+// If uninstall not called from WordPress, exit
+if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
-/**
- * Remove custom roles created by the plugin.
- */
-function sleeve_ke_remove_roles() {
-    remove_role( 'employer' );
-    remove_role( 'candidate' );
-    remove_role( 'sleve_admin' );
-}
+// Include required classes
+require_once plugin_dir_path(__FILE__) . 'includes/class-sleeve-ke-roles.php';
+require_once plugin_dir_path(__FILE__) . 'includes/class-sleeve-ke-database.php';
 
-sleeve_ke_remove_roles();
+// Remove custom roles
+Sleeve_KE_Roles::remove_roles();
 
-/**
- * Clean up options and transients.
- * Add any plugin-specific cleanup code here.
- */
-// delete_option( 'sleeve_ke_option_name' );
-// delete_transient( 'sleeve_ke_transient_name' );
+// Drop all database tables
+Sleeve_KE_Database::drop_tables();
+
+// Remove plugin options
+delete_option('sleeve_ke_activated');
+delete_option('sleeve_ke_version');
+delete_option('sleeve_ke_db_version');
+
+// Clear any transients
+delete_transient('sleeve_ke_*');
