@@ -67,3 +67,62 @@ function run_sleeve_ke() {
     $plugin->run();
 }
 run_sleeve_ke();
+
+/**
+ * Utility function to send Sleeve KE notifications
+ * 
+ * @param string $type Notification type
+ * @param string $recipient Email address
+ * @param array $variables Template variables
+ * @return bool Success/failure
+ */
+function sleeve_ke_send_notification( $type, $recipient, $variables = array() ) {
+    // Check if notifications are enabled
+    if ( ! get_option( 'sleeve_ke_enable_notifications', 1 ) ) {
+        return false;
+    }
+    
+    // Load notifications class if not already loaded
+    if ( ! class_exists( 'Sleeve_KE_Notifications' ) ) {
+        require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-notifications.php';
+    }
+    
+    $notifications = new Sleeve_KE_Notifications();
+    return $notifications->send_notification( $type, $recipient, $variables );
+}
+
+/**
+ * Trigger new application notification
+ * 
+ * @param int $application_id Application ID
+ */
+function sleeve_ke_trigger_new_application( $application_id ) {
+    do_action( 'sleeve_ke_new_application_submitted', $application_id );
+}
+
+/**
+ * Trigger new employer registration notification
+ * 
+ * @param int $employer_id Employer ID
+ */
+function sleeve_ke_trigger_new_employer( $employer_id ) {
+    do_action( 'sleeve_ke_new_employer_registered', $employer_id );
+}
+
+/**
+ * Trigger new candidate registration notification
+ * 
+ * @param int $candidate_id Candidate ID
+ */
+function sleeve_ke_trigger_new_candidate( $candidate_id ) {
+    do_action( 'sleeve_ke_new_candidate_registered', $candidate_id );
+}
+
+/**
+ * Trigger job posted notification
+ * 
+ * @param int $job_id Job ID
+ */
+function sleeve_ke_trigger_job_posted( $job_id ) {
+    do_action( 'sleeve_ke_job_posted', $job_id );
+}
