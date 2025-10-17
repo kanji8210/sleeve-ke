@@ -1,31 +1,91 @@
 <?php
 /**
- * Fired during plugin activation
+ * Fired during plugin activation.
  *
- * @package Sleeve_KE
+ * @package    Sleeve_KE
+ * @subpackage Sleeve_KE/includes
  */
 
+/**
+ * Fired during plugin activation.
+ *
+ * This class defines all code necessary to run during the plugin's activation.
+ */
 class Sleeve_KE_Activator {
-    
+
     /**
-     * Activate the plugin - create roles and database tables
+     * Plugin activation handler.
+     *
+     * Registers custom user roles and sets up capabilities.
      */
     public static function activate() {
-        // Load required classes
-        require_once SLEEVE_KE_PLUGIN_DIR . 'includes/class-sleeve-ke-roles.php';
-        require_once SLEEVE_KE_PLUGIN_DIR . 'includes/class-sleeve-ke-database.php';
-        
-        // Create custom roles
-        Sleeve_KE_Roles::create_roles();
-        
-        // Create database tables
-        Sleeve_KE_Database::create_tables();
-        
-        // Save activation timestamp
-        update_option('sleeve_ke_activated', current_time('mysql'));
-        update_option('sleeve_ke_version', SLEEVE_KE_VERSION);
+        self::create_custom_roles();
         
         // Flush rewrite rules
         flush_rewrite_rules();
+    }
+
+    /**
+     * Create custom user roles.
+     *
+     * Creates Employer, Candidate, and sleve_admin roles with appropriate capabilities.
+     */
+    private static function create_custom_roles() {
+        
+        // Employer Role
+        add_role(
+            'employer',
+            __( 'Employer', 'sleeve-ke' ),
+            array(
+                'read'              => true,
+                'edit_posts'        => true,
+                'delete_posts'      => true,
+                'publish_posts'     => true,
+                'upload_files'      => true,
+                'manage_jobs'       => true,
+                'view_applications' => true,
+                'manage_payments'   => true,
+            )
+        );
+
+        // Candidate Role
+        add_role(
+            'candidate',
+            __( 'Candidate', 'sleeve-ke' ),
+            array(
+                'read'              => true,
+                'edit_posts'        => false,
+                'upload_files'      => true,
+                'view_jobs'         => true,
+                'apply_to_jobs'     => true,
+                'manage_profile'    => true,
+            )
+        );
+
+        // Sleeve Admin Role (manages everything in the system)
+        add_role(
+            'sleve_admin',
+            __( 'Sleeve Admin', 'sleeve-ke' ),
+            array(
+                'read'                   => true,
+                'edit_posts'             => true,
+                'delete_posts'           => true,
+                'publish_posts'          => true,
+                'upload_files'           => true,
+                'manage_options'         => true,
+                'manage_applications'    => true,
+                'manage_jobs'            => true,
+                'manage_candidates'      => true,
+                'manage_employers'       => true,
+                'manage_payments'        => true,
+                'view_all_applications'  => true,
+                'view_all_jobs'          => true,
+                'view_all_candidates'    => true,
+                'view_all_employers'     => true,
+                'view_all_payments'      => true,
+                'edit_users'             => true,
+                'delete_users'           => true,
+            )
+        );
     }
 }
