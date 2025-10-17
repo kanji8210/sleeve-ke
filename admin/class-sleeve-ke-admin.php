@@ -35,6 +35,11 @@ class Sleeve_KE_Admin {
     private $jobs_manager;
 
     /**
+     * The candidates manager instance.
+     */
+    private $candidates_manager;
+
+    /**
      * Initialize the class and set its properties.
      */
     public function __construct( $plugin_name, $version ) {
@@ -48,10 +53,15 @@ class Sleeve_KE_Admin {
         // Load jobs manager
         require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-jobs.php';
         $this->jobs_manager = new Sleeve_KE_Jobs();
+        
+        // Load candidates manager
+        require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-candidates.php';
+        $this->candidates_manager = new Sleeve_KE_Candidates();
 
         // Add AJAX hooks
         add_action( 'wp_ajax_update_application_status', array( $this->applications_manager, 'ajax_update_application_status' ) );
         add_action( 'wp_ajax_update_job_status', array( $this->jobs_manager, 'ajax_update_job_status' ) );
+        add_action( 'wp_ajax_update_candidate_status', array( $this->candidates_manager, 'ajax_update_candidate_status' ) );
     }
 
     /**
@@ -280,13 +290,7 @@ class Sleeve_KE_Admin {
      * Display the candidates management page.
      */
     public function display_candidates() {
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'Manage candidates here.', 'sleeve-ke' ); ?></p>
-            <!-- Candidates list table will be implemented here -->
-        </div>
-        <?php
+        $this->candidates_manager->display_page();
     }
 
     /**
