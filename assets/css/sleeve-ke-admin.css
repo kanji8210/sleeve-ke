@@ -256,3 +256,47 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+
+/* Application details page */
+.sleeve-ke-application-details {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.sleeve-ke-application-details .application-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.sleeve-ke-application-details .application-header h2 {
+    margin: 0;
+    color: #2271b1;
+}
+
+.sleeve-ke-application-details .application-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e1e1;
+}
+
+.sleeve-ke-application-details .application-actions h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.sleeve-ke-application-details .application-actions form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.sleeve-ke-application-details .score-bar {
+    width: 100px;
+}
