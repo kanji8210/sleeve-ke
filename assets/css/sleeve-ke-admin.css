@@ -524,3 +524,260 @@
         gap: 20px;
     }
 }
+
+/* Employers Management Styles */
+.sleeve-ke-employers-table {
+    margin-top: 20px;
+}
+
+.sleeve-ke-employers-table .column-cb {
+    width: 30px;
+}
+
+.sleeve-ke-employers-table th,
+.sleeve-ke-employers-table td {
+    padding: 12px 8px;
+    vertical-align: middle;
+}
+
+.sleeve-ke-employers-table .company-name {
+    font-weight: 600;
+    color: #0073aa;
+}
+
+.sleeve-ke-employers-table .company-name:hover {
+    color: #005177;
+}
+
+.sleeve-ke-employers-table .row-actions {
+    margin-top: 4px;
+    color: #646970;
+    font-size: 13px;
+}
+
+.sleeve-ke-employers-table .row-actions a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.sleeve-ke-employers-table .row-actions a:hover {
+    color: #005177;
+}
+
+.sleeve-ke-employers-table .row-actions .delete:hover {
+    color: #d63638;
+}
+
+.subscription-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.subscription-free {
+    background-color: #f0f0f1;
+    color: #646970;
+}
+
+.subscription-basic {
+    background-color: #e1f5fe;
+    color: #0277bd;
+}
+
+.subscription-premium {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.subscription-enterprise {
+    background-color: #fff3e0;
+    color: #ef6c00;
+}
+
+.subscription-expires {
+    font-size: 11px;
+    color: #646970;
+    margin-top: 2px;
+}
+
+.sleeve-ke-employers-stats {
+    margin-top: 30px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.sleeve-ke-employers-stats h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1d2327;
+    font-size: 16px;
+}
+
+.sleeve-ke-employers-stats .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.sleeve-ke-employers-stats .stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+}
+
+.sleeve-ke-employers-stats .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #135e96;
+    margin-bottom: 5px;
+}
+
+.sleeve-ke-employers-stats .stat-label {
+    font-size: 12px;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Employer Details View */
+.sleeve-ke-employer-details {
+    margin-top: 20px;
+}
+
+.employer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.employer-header h2 {
+    margin: 0;
+    color: #1d2327;
+}
+
+.employer-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.employer-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.employer-details-main .form-table th {
+    width: 150px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.employer-details-main .form-table td {
+    color: #646970;
+}
+
+.employer-details-content .employer-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.employer-details-content .employer-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1d2327;
+    font-size: 16px;
+}
+
+.employer-content p {
+    line-height: 1.6;
+    color: #646970;
+}
+
+.job-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.job-stats .stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+    flex: 1;
+}
+
+.job-stats .stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #135e96;
+    margin-bottom: 5px;
+}
+
+.job-stats .stat-label {
+    font-size: 12px;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.subscription-info p {
+    margin-bottom: 8px;
+    color: #646970;
+}
+
+.subscription-info strong {
+    color: #1d2327;
+}
+
+.status-select {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+/* Responsive Design for Employers */
+@media (max-width: 1200px) {
+    .employer-details-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .employer-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .employer-meta {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .job-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .sleeve-ke-employers-stats .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+    }
+}

@@ -40,6 +40,11 @@ class Sleeve_KE_Admin {
     private $candidates_manager;
 
     /**
+     * The employers manager instance.
+     */
+    private $employers_manager;
+
+    /**
      * Initialize the class and set its properties.
      */
     public function __construct( $plugin_name, $version ) {
@@ -57,11 +62,16 @@ class Sleeve_KE_Admin {
         // Load candidates manager
         require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-candidates.php';
         $this->candidates_manager = new Sleeve_KE_Candidates();
+        
+        // Load employers manager
+        require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-employers.php';
+        $this->employers_manager = new Sleeve_KE_Employers();
 
         // Add AJAX hooks
         add_action( 'wp_ajax_update_application_status', array( $this->applications_manager, 'ajax_update_application_status' ) );
         add_action( 'wp_ajax_update_job_status', array( $this->jobs_manager, 'ajax_update_job_status' ) );
         add_action( 'wp_ajax_update_candidate_status', array( $this->candidates_manager, 'ajax_update_candidate_status' ) );
+        add_action( 'wp_ajax_update_employer_status', array( $this->employers_manager, 'ajax_update_employer_status' ) );
     }
 
     /**
@@ -297,13 +307,7 @@ class Sleeve_KE_Admin {
      * Display the employers management page.
      */
     public function display_employers() {
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'Manage employers here.', 'sleeve-ke' ); ?></p>
-            <!-- Employers list table will be implemented here -->
-        </div>
-        <?php
+        $this->employers_manager->display_page();
     }
 
     /**
