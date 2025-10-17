@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employer Registration - Sleeve KE</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-wrapper">
+            <h1>Employer Registration</h1>
+            <p class="subtitle">Register your company to post jobs on Sleeve KE</p>
+            
+            <form id="employerRegistrationForm">
+                <!-- Company Information -->
+                <div class="form-section">
+                    <h2>Company Information</h2>
+                    
+                    <div class="form-group">
+                        <label for="companyName">Company Name <span class="required">*</span></label>
+                        <input type="text" id="companyName" name="companyName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="country">Country <span class="required">*</span></label>
+                        <select id="country" name="country" required>
+                            <option value="">Select Country</option>
+                            <option value="kenya">Kenya</option>
+                            <option value="uganda">Uganda</option>
+                            <option value="tanzania">Tanzania</option>
+                            <option value="rwanda">Rwanda</option>
+                            <option value="ethiopia">Ethiopia</option>
+                            <option value="south-africa">South Africa</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Location/City <span class="required">*</span></label>
+                        <input type="text" id="location" name="location" placeholder="e.g., Nairobi, Mombasa" required>
+                    </div>
+                </div>
+
+                <!-- Job Details -->
+                <div class="form-section">
+                    <h2>Job Posting Preferences</h2>
+                    
+                    <div class="form-group">
+                        <label for="jobSector">Job Sector <span class="required">*</span></label>
+                        <select id="jobSector" name="jobSector" required>
+                            <option value="">Select Job Sector</option>
+                            <option value="technology">Technology</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="finance">Finance & Banking</option>
+                            <option value="education">Education</option>
+                            <option value="manufacturing">Manufacturing</option>
+                            <option value="retail">Retail & Sales</option>
+                            <option value="hospitality">Hospitality & Tourism</option>
+                            <option value="agriculture">Agriculture</option>
+                            <option value="construction">Construction</option>
+                            <option value="telecommunications">Telecommunications</option>
+                            <option value="legal">Legal Services</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subSector">Sub-Sector <span class="required">*</span></label>
+                        <select id="subSector" name="subSector" required disabled>
+                            <option value="">Select Job Sector First</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="natureOfJob">Nature of Job <span class="required">*</span></label>
+                        <select id="natureOfJob" name="natureOfJob" required>
+                            <option value="">Select Nature of Job</option>
+                            <option value="full-time">Full-Time</option>
+                            <option value="part-time">Part-Time</option>
+                            <option value="contract">Contract</option>
+                            <option value="temporary">Temporary</option>
+                            <option value="internship">Internship</option>
+                            <option value="freelance">Freelance</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="genderPreference">Gender Preference</label>
+                        <select id="genderPreference" name="genderPreference">
+                            <option value="no-preference">No Preference</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="form-section">
+                    <h2>Terms and Agreements</h2>
+                    
+                    <div class="form-group">
+                        <label for="termsOfEmployment">Terms of Employment <span class="required">*</span></label>
+                        <textarea id="termsOfEmployment" name="termsOfEmployment" rows="5" 
+                                  placeholder="Please describe the terms of employment including salary range, benefits, working hours, etc." required></textarea>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="ndaRequired" name="ndaRequired">
+                            <span>Non-Disclosure Agreement (NDA) Required</span>
+                        </label>
+                        <p class="help-text">Check this if candidates will be required to sign an NDA</p>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
+                            <span>I accept the terms and conditions <span class="required">*</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <button type="reset" class="btn btn-secondary">Clear Form</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
