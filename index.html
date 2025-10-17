@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleeve-KE Registration Portal</title>
+    <link rel="stylesheet" href="registration-forms.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sleeve-KE Registration Portal</h1>
+            <p>Choose your registration type</p>
+        </header>
+        
+        <div class="form-selector">
+            <button id="adminBtn" class="selector-btn active">Admin Registration</button>
+            <button id="candidateBtn" class="selector-btn">Candidate Registration</button>
+        </div>
+
+        <!-- Admin Registration Form -->
+        <div id="adminForm" class="form-container active">
+            <h2>Sleeve Admin Registration</h2>
+            <form id="adminRegistrationForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="adminFullName">Full Name *</label>
+                    <input type="text" id="adminFullName" name="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminEmail">Email Address *</label>
+                    <input type="email" id="adminEmail" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminPhone">Phone Number *</label>
+                    <input type="tel" id="adminPhone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminPassword">Password *</label>
+                    <input type="password" id="adminPassword" name="password" required minlength="8">
+                </div>
+
+                <div class="form-group">
+                    <label for="adminConfirmPassword">Confirm Password *</label>
+                    <input type="password" id="adminConfirmPassword" name="confirmPassword" required minlength="8">
+                </div>
+
+                <div class="form-group">
+                    <label for="adminRole">Admin Role *</label>
+                    <select id="adminRole" name="adminRole" required>
+                        <option value="">Select Role</option>
+                        <option value="super-admin">Super Admin</option>
+                        <option value="admin">Admin</option>
+                        <option value="moderator">Moderator</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="submit-btn">Register Admin</button>
+            </form>
+        </div>
+
+        <!-- Candidate Registration Form -->
+        <div id="candidateForm" class="form-container">
+            <h2>Candidate Registration</h2>
+            <form id="candidateRegistrationForm" enctype="multipart/form-data">
+                <!-- Personal Information -->
+                <div class="form-section">
+                    <h3>Personal Information</h3>
+                    
+                    <div class="form-group">
+                        <label for="candidateFullName">Full Name *</label>
+                        <input type="text" id="candidateFullName" name="fullName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="candidateEmail">Email Address *</label>
+                        <input type="email" id="candidateEmail" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="candidatePhone">Phone Number *</label>
+                        <input type="tel" id="candidatePhone" name="phone" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="candidatePassword">Password *</label>
+                        <input type="password" id="candidatePassword" name="password" required minlength="8">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="candidateConfirmPassword">Confirm Password *</label>
+                        <input type="password" id="candidateConfirmPassword" name="confirmPassword" required minlength="8">
+                    </div>
+                </div>
+
+                <!-- Profile Image -->
+                <div class="form-section">
+                    <h3>Profile Image</h3>
+                    <div class="form-group">
+                        <label for="profileImage">Upload Profile Image *</label>
+                        <input type="file" id="profileImage" name="profileImage" accept="image/*" required>
+                        <small>Accepted formats: JPG, PNG, GIF (Max 5MB)</small>
+                    </div>
+                </div>
+
+                <!-- 4 Pictures -->
+                <div class="form-section">
+                    <h3>Gallery Images (4 Pictures)</h3>
+                    <div class="form-group">
+                        <label for="picture1">Picture 1 *</label>
+                        <input type="file" id="picture1" name="picture1" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="picture2">Picture 2 *</label>
+                        <input type="file" id="picture2" name="picture2" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="picture3">Picture 3 *</label>
+                        <input type="file" id="picture3" name="picture3" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="picture4">Picture 4 *</label>
+                        <input type="file" id="picture4" name="picture4" accept="image/*" required>
+                    </div>
+                    <small>Upload 4 professional pictures (Max 5MB each)</small>
+                </div>
+
+                <!-- Social Media Links -->
+                <div class="form-section">
+                    <h3>Social Media Links</h3>
+                    <div class="form-group">
+                        <label for="linkedIn">LinkedIn Profile</label>
+                        <input type="url" id="linkedIn" name="linkedIn" placeholder="https://linkedin.com/in/yourprofile">
+                    </div>
+                    <div class="form-group">
+                        <label for="twitter">Twitter/X Profile</label>
+                        <input type="url" id="twitter" name="twitter" placeholder="https://twitter.com/yourprofile">
+                    </div>
+                    <div class="form-group">
+                        <label for="facebook">Facebook Profile</label>
+                        <input type="url" id="facebook" name="facebook" placeholder="https://facebook.com/yourprofile">
+                    </div>
+                    <div class="form-group">
+                        <label for="instagram">Instagram Profile</label>
+                        <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/yourprofile">
+                    </div>
+                </div>
+
+                <!-- Documents -->
+                <div class="form-section">
+                    <h3>Documents</h3>
+                    <div class="form-group">
+                        <label for="profilePdf">Profile PDF *</label>
+                        <input type="file" id="profilePdf" name="profilePdf" accept=".pdf" required>
+                        <small>Upload your profile document in PDF format (Max 10MB)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="resumePdf">Résumé/CV PDF *</label>
+                        <input type="file" id="resumePdf" name="resumePdf" accept=".pdf" required>
+                        <small>Upload your résumé/CV in PDF format (Max 10MB)</small>
+                    </div>
+                </div>
+
+                <!-- Interested Sectors -->
+                <div class="form-section">
+                    <h3>Career Preferences</h3>
+                    <div class="form-group">
+                        <label for="interestedSectors">Interested Sectors *</label>
+                        <select id="interestedSectors" name="interestedSectors" multiple required size="8">
+                            <option value="healthcare">Healthcare</option>
+                            <option value="technology">Technology/IT</option>
+                            <option value="engineering">Engineering</option>
+                            <option value="finance">Finance & Banking</option>
+                            <option value="education">Education</option>
+                            <option value="hospitality">Hospitality & Tourism</option>
+                            <option value="construction">Construction</option>
+                            <option value="retail">Retail & Sales</option>
+                            <option value="manufacturing">Manufacturing</option>
+                            <option value="transportation">Transportation & Logistics</option>
+                            <option value="telecommunications">Telecommunications</option>
+                            <option value="energy">Energy & Utilities</option>
+                            <option value="agriculture">Agriculture</option>
+                            <option value="legal">Legal Services</option>
+                            <option value="media">Media & Entertainment</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <small>Hold Ctrl (Cmd on Mac) to select multiple sectors</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="workCountries">Countries You Want to Work In *</label>
+                        <select id="workCountries" name="workCountries" multiple required size="6">
+                            <option value="uk">United Kingdom (UK)</option>
+                            <option value="germany">Germany</option>
+                            <option value="uae">United Arab Emirates (UAE)</option>
+                            <option value="qatar">Qatar</option>
+                            <option value="bahrain">Bahrain</option>
+                            <option value="israel">Israel</option>
+                        </select>
+                        <small>Hold Ctrl (Cmd on Mac) to select multiple countries</small>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">Register as Candidate</button>
+            </form>
+        </div>
+
+        <div id="successMessage" class="success-message" style="display: none;">
+            <h3>Registration Successful!</h3>
+            <p>Your registration has been submitted successfully.</p>
+        </div>
+    </div>
+
+    <script src="registration-forms.js"></script>
+</body>
+</html>

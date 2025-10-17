@@ -1,0 +1,25 @@
+# Copyright (C) 2025 Sleeve KE Team
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Sleeve KE 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/kanji8210/sleeve-ke/issues\n"
+"POT-Creation-Date: 2025-01-01 00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2025-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: includes/class-sleeve-ke-activator.php
+msgid "Employer"
+msgstr ""
+
+#: includes/class-sleeve-ke-activator.php
+msgid "Candidate"
+msgstr ""
+
+#: includes/class-sleeve-ke-activator.php
+msgid "Sleeve Admin"
+msgstr ""

@@ -1,0 +1,93 @@
+/**
+ * Admin-specific styles for Sleeve KE plugin.
+ *
+ * @package    Sleeve_KE
+ * @subpackage Sleeve_KE/assets/css
+ */
+
+.sleeve-ke-dashboard {
+    margin-top: 20px;
+}
+
+.sleeve-ke-stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-box {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    min-width: 200px;
+    flex: 1;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.stat-box h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #646970;
+    font-weight: 600;
+}
+
+.stat-box .stat-number {
+    font-size: 32px;
+    font-weight: bold;
+    color: #1d2327;
+    margin: 0;
+}
+
+.sleeve-ke-table {
+    margin-top: 20px;
+}
+
+.sleeve-ke-form {
+    max-width: 800px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.sleeve-ke-form .form-field {
+    margin-bottom: 20px;
+}
+
+.sleeve-ke-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.sleeve-ke-form input[type="text"],
+.sleeve-ke-form input[type="email"],
+.sleeve-ke-form input[type="number"],
+.sleeve-ke-form textarea,
+.sleeve-ke-form select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+}
+
+.sleeve-ke-form textarea {
+    min-height: 100px;
+}
+
+.sleeve-ke-button {
+    background: #2271b1;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.sleeve-ke-button:hover {
+    background: #135e96;
+}
