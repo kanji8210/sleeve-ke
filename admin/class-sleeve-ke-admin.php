@@ -25,9 +25,14 @@ class Sleeve_KE_Admin {
     private $version;
 
     /**
-     * The applications management instance.
+     * The applications manager instance.
      */
     private $applications_manager;
+
+    /**
+     * The jobs manager instance.
+     */
+    private $jobs_manager;
 
     /**
      * Initialize the class and set its properties.
@@ -39,6 +44,14 @@ class Sleeve_KE_Admin {
         // Load applications manager
         require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-applications.php';
         $this->applications_manager = new Sleeve_KE_Applications();
+
+        // Load jobs manager
+        require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-jobs.php';
+        $this->jobs_manager = new Sleeve_KE_Jobs();
+
+        // Add AJAX hooks
+        add_action( 'wp_ajax_update_application_status', array( $this->applications_manager, 'ajax_update_application_status' ) );
+        add_action( 'wp_ajax_update_job_status', array( $this->jobs_manager, 'ajax_update_job_status' ) );
     }
 
     /**
@@ -95,91 +108,118 @@ class Sleeve_KE_Admin {
         
         // Check if user has appropriate capabilities
         $can_manage = current_user_can( 'manage_options' );
+        $is_employer = in_array( 'employer', wp_get_current_user()->roles );
+        $is_sleve_admin = in_array( 'sleve_admin', wp_get_current_user()->roles );
         
-        if ( ! $can_manage ) {
+        if ( ! $can_manage && ! $is_employer && ! $is_sleve_admin ) {
             return;
         }
 
-        // Main menu
-        add_menu_page(
-            __( 'Sleeve KE', 'sleeve-ke' ),
-            __( 'Sleeve KE', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke',
-            array( $this, 'display_dashboard' ),
-            'dashicons-businessman',
-            30
-        );
+        // Main menu for administrators and sleve_admins
+        if ( $can_manage || $is_sleve_admin ) {
+            add_menu_page(
+                __( 'Sleeve KE', 'sleeve-ke' ),
+                __( 'Sleeve KE', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke',
+                array( $this, 'display_dashboard' ),
+                'dashicons-businessman',
+                30
+            );
 
-        // Dashboard submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Dashboard', 'sleeve-ke' ),
-            __( 'Dashboard', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke',
-            array( $this, 'display_dashboard' )
-        );
+            // Dashboard submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Dashboard', 'sleeve-ke' ),
+                __( 'Dashboard', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke',
+                array( $this, 'display_dashboard' )
+            );
 
-        // Applications submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Applications', 'sleeve-ke' ),
-            __( 'Applications', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke-applications',
-            array( $this, 'display_applications' )
-        );
+            // Applications submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Applications', 'sleeve-ke' ),
+                __( 'Applications', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-applications',
+                array( $this, 'display_applications' )
+            );
 
-        // Jobs submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Jobs', 'sleeve-ke' ),
-            __( 'Jobs', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke-jobs',
-            array( $this, 'display_jobs' )
-        );
+            // Jobs submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Jobs', 'sleeve-ke' ),
+                __( 'Jobs', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-jobs',
+                array( $this, 'display_jobs' )
+            );
 
-        // Candidates submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Candidates', 'sleeve-ke' ),
-            __( 'Candidates', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke-candidates',
-            array( $this, 'display_candidates' )
-        );
+            // Candidates submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Candidates', 'sleeve-ke' ),
+                __( 'Candidates', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-candidates',
+                array( $this, 'display_candidates' )
+            );
 
-        // Employers submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Employers', 'sleeve-ke' ),
-            __( 'Employers', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke-employers',
-            array( $this, 'display_employers' )
-        );
+            // Employers submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Employers', 'sleeve-ke' ),
+                __( 'Employers', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-employers',
+                array( $this, 'display_employers' )
+            );
 
-        // Countries submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Countries', 'sleeve-ke' ),
-            __( 'Countries', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke-countries',
-            array( $this, 'display_countries' )
-        );
+            // Countries submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Countries', 'sleeve-ke' ),
+                __( 'Countries', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-countries',
+                array( $this, 'display_countries' )
+            );
 
-        // Payments submenu
-        add_submenu_page(
-            'sleeve-ke',
-            __( 'Payments', 'sleeve-ke' ),
-            __( 'Payments', 'sleeve-ke' ),
-            'manage_options',
-            'sleeve-ke-payments',
-            array( $this, 'display_payments' )
-        );
+            // Payments submenu
+            add_submenu_page(
+                'sleeve-ke',
+                __( 'Payments', 'sleeve-ke' ),
+                __( 'Payments', 'sleeve-ke' ),
+                'manage_options',
+                'sleeve-ke-payments',
+                array( $this, 'display_payments' )
+            );
+        }
+
+        // Employer menu - limited access
+        if ( $is_employer ) {
+            add_menu_page(
+                __( 'Job Management', 'sleeve-ke' ),
+                __( 'Jobs', 'sleeve-ke' ),
+                'read',
+                'sleeve-ke-employer-jobs',
+                array( $this, 'display_jobs' ),
+                'dashicons-portfolio',
+                30
+            );
+
+            // Applications for employers
+            add_submenu_page(
+                'sleeve-ke-employer-jobs',
+                __( 'My Job Applications', 'sleeve-ke' ),
+                __( 'Applications', 'sleeve-ke' ),
+                'read',
+                'sleeve-ke-employer-applications',
+                array( $this, 'display_applications' )
+            );
+        }
     }
 
     /**
@@ -233,13 +273,7 @@ class Sleeve_KE_Admin {
      * Display the jobs management page.
      */
     public function display_jobs() {
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            <p><?php esc_html_e( 'Manage job postings here.', 'sleeve-ke' ); ?></p>
-            <!-- Jobs list table will be implemented here -->
-        </div>
-        <?php
+        $this->jobs_manager->display_page();
     }
 
     /**

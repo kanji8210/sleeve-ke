@@ -300,3 +300,111 @@
 .sleeve-ke-application-details .score-bar {
     width: 100px;
 }
+
+/* Job Management Styles */
+.sleeve-ke-jobs-table .status-select {
+    min-width: 120px;
+}
+
+.sleeve-ke-jobs-table .no-salary {
+    color: #787c82;
+    font-style: italic;
+}
+
+.sleeve-ke-jobs-stats {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.sleeve-ke-jobs-stats h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1d2327;
+}
+
+.sleeve-ke-jobs-stats .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 20px;
+}
+
+.sleeve-ke-jobs-stats .stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+}
+
+.sleeve-ke-jobs-stats .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #135e96;
+    margin-bottom: 5px;
+}
+
+.sleeve-ke-jobs-stats .stat-label {
+    font-size: 12px;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sleeve-ke-job-details {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.sleeve-ke-job-details .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.sleeve-ke-job-details .job-header h2 {
+    margin: 0;
+    color: #1d2327;
+}
+
+.sleeve-ke-job-details .job-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.sleeve-ke-job-details .form-table th {
+    font-weight: 600;
+    width: 150px;
+}
+
+.sleeve-ke-job-details .form-table td {
+    padding-left: 20px;
+}
+
+/* Job Form Styles */
+.sleeve-ke-job-form .form-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.sleeve-ke-job-form .form-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.sleeve-ke-job-form .required {
+    color: #d63638;
+}
