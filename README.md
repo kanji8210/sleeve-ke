@@ -1,15 +1,31 @@
-# Sleeve KE - Employer Registration Portal
+# Sleeve KE - WordPress Job Board Plugin
 
-A modern, responsive employer registration form for the Sleeve KE job platform. This form allows companies to register and provide detailed information about their organization and job posting preferences.
+A comprehensive job board and recruitment management plugin for WordPress with a modern employer registration portal.
 
 ## Features
 
-### Company Information
+### WordPress Plugin Features
+- **Automatic Role Creation**: On plugin activation, three custom user roles are automatically created:
+  - **Employer**: Can create and manage job postings, view and manage applications
+  - **Candidate**: Can view jobs, apply for positions, and manage their profile
+  - **Sleve Admin**: Can manage all aspects of the job board including jobs, applications, candidates, employers, and payments
+
+- **Automatic Database Table Creation**: Five database tables are automatically created on activation:
+  - **sleeve_jobs**: Stores job postings with details like title, description, requirements, salary, location, etc.
+  - **sleeve_applications**: Tracks job applications from candidates
+  - **sleeve_candidates**: Extended profile information for candidates (skills, experience, resume, etc.)
+  - **sleeve_employers**: Extended profile information for employers (company details, industry, etc.)
+  - **sleeve_payments**: Payment tracking for premium features or services
+
+### Employer Registration Portal
+A modern, responsive employer registration form for the Sleeve KE job platform.
+
+#### Company Information
 - **Company Name**: Text input for the company name
 - **Country Selection**: Dropdown with East African countries and international options
 - **Location/City**: Text input for specific location within the country
 
-### Job Posting Preferences
+#### Job Posting Preferences
 - **Job Sector**: Comprehensive dropdown with 12 major sectors including:
   - Technology
   - Healthcare
@@ -35,7 +51,7 @@ A modern, responsive employer registration form for the Sleeve KE job platform. 
 
 - **Gender Preference**: Optional selection for gender preference in hiring
 
-### Terms and Agreements
+#### Terms and Agreements
 - **Terms of Employment**: Text area for detailed employment terms description
 - **NDA Requirement**: Optional checkbox to indicate if candidates need to sign a Non-Disclosure Agreement
 - **Terms Acceptance**: Required checkbox for accepting the platform's terms and conditions
@@ -43,6 +59,7 @@ A modern, responsive employer registration form for the Sleeve KE job platform. 
 ## Technical Implementation
 
 ### Technologies Used
+- **WordPress PHP**: Plugin architecture and WordPress integration
 - **HTML5**: Semantic markup for form structure
 - **CSS3**: Modern styling with gradients, transitions, and responsive design
 - **Vanilla JavaScript**: Client-side form validation and dynamic behavior
@@ -55,53 +72,72 @@ A modern, responsive employer registration form for the Sleeve KE job platform. 
 5. **Form Reset**: Automatic form reset after successful submission
 6. **Accessibility**: Proper labels, required field indicators, and keyboard navigation support
 
-## Usage
+## Installation
 
-### Running Locally
+1. Upload the `sleeve-ke` folder to the `/wp-content/plugins/` directory
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Roles and database tables will be created automatically upon activation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/kanji8210/sleeve-ke.git
-cd sleeve-ke
-```
-
-2. Serve the HTML file using any HTTP server. For example, using Python:
-```bash
-python3 -m http.server 8080
-```
-
-3. Open your browser and navigate to:
-```
-http://localhost:8080/employer-registration.html
-```
-
-### File Structure
+## File Structure
 ```
 sleeve-ke/
-├── employer-registration.html  # Main form HTML
-├── styles.css                  # Form styling
-├── script.js                   # Form validation and interactivity
-└── README.md                   # This file
+├── sleeve-ke.php                    # Main plugin file
+├── includes/
+│   ├── class-sleeve-ke.php          # Main plugin class
+│   ├── class-sleeve-ke-activator.php # Plugin activation handler
+│   ├── class-sleeve-ke-deactivator.php # Plugin deactivation handler
+│   ├── class-sleeve-ke-database.php  # Database management
+│   └── class-sleeve-ke-roles.php     # User roles management
+├── employer-registration.html        # Employer registration form
+├── styles.css                       # Form styling
+├── script.js                        # Form validation and interactivity
+├── uninstall.php                    # Plugin uninstall handler
+└── README.md                        # This file
 ```
+
+## Database Schema
+
+### Jobs Table
+- Job postings with employer information, descriptions, requirements, location, salary, and status
+
+### Applications Table
+- Job applications linking candidates to jobs with status tracking and notes
+
+### Candidates Table
+- Extended candidate profiles with skills, experience, education, and portfolio links
+
+### Employers Table
+- Company information including name, description, logo, website, and industry
+
+### Payments Table
+- Transaction records for payments with amount, currency, method, and status
+
+## User Roles & Capabilities
+
+### Employer Role
+- Create and manage their own job postings
+- View and manage applications to their jobs
+- Upload files
+
+### Candidate Role
+- View available jobs
+- Apply for jobs
+- View their own applications
+- Edit their profile
+- Upload files (resume, documents)
+
+### Sleve Admin Role
+- Full management capabilities for jobs, applications, candidates, employers, and payments
+- Can view and edit all content
+- Process payments and manage transactions
 
 ## Form Validation
 
-The form includes comprehensive validation:
+The employer registration form includes comprehensive validation:
 - All required fields must be filled
 - Terms and conditions must be accepted
 - Real-time error messages for invalid inputs
 - Visual feedback (border colors) for field states
-
-## Screenshots
-
-### Empty Form
-![Employer Registration Form](https://github.com/user-attachments/assets/667c791d-3256-45c6-9e77-8412f4fddc5d)
-
-### Filled Form
-![Filled Registration Form](https://github.com/user-attachments/assets/bc805b2e-ed45-46a2-9ead-70809822da17)
-
-### Success Message
-![Registration Success](https://github.com/user-attachments/assets/6f80a50f-f4ca-4dcb-8912-f0f0bd57e67e)
 
 ## Browser Support
 
@@ -110,6 +146,15 @@ The form includes comprehensive validation:
 - Safari (latest)
 - Edge (latest)
 - Mobile browsers
+
+## Uninstall
+
+When uninstalling the plugin:
+- All custom roles are removed
+- All database tables are dropped
+- All plugin options are deleted
+
+**Warning**: Uninstalling will permanently delete all job postings, applications, and related data.
 
 ## Future Enhancements
 
@@ -125,10 +170,10 @@ Potential improvements for future versions:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Version
+
+Current version: 1.0.0
+
 ## License
 
-This project is open source and available under the MIT License.
-
-## Contact
-
-For questions or support, please open an issue on GitHub.
+GPL v2 or later
