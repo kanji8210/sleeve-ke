@@ -60,6 +60,18 @@ register_deactivation_hook( __FILE__, 'deactivate_sleeve_ke' );
 require SLEEVE_KE_PLUGIN_DIR . 'includes/class-sleeve-ke.php';
 
 /**
+ * Load frontend registration forms class.
+ */
+if ( ! is_admin() ) {
+    require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-registration-forms.php';
+    
+    // Initialize registration forms on init
+    add_action( 'init', function() {
+        new Sleeve_KE_Registration_Forms();
+    } );
+}
+
+/**
  * Begins execution of the plugin.
  */
 function run_sleeve_ke() {
