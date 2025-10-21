@@ -64,10 +64,12 @@ require SLEEVE_KE_PLUGIN_DIR . 'includes/class-sleeve-ke.php';
  */
 if ( ! is_admin() ) {
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-registration-forms.php';
+    require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-display.php';
     
-    // Initialize registration forms on init
+    // Initialize frontend classes on init
     add_action( 'init', function() {
         new Sleeve_KE_Registration_Forms();
+        new Sleeve_KE_Job_Display();
     } );
 }
 
