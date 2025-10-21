@@ -126,7 +126,7 @@ class Sleeve_KE_Job_Display {
                 <div class="results-info">
                     <span class="results-count">
                         <?php printf( 
-                            _n( '%d emploi trouvé', '%d emplois trouvés', $jobs_query->found_posts, 'sleeve-ke' ), 
+                            _n( '%d job found', '%d jobs found', $jobs_query->found_posts, 'sleeve-ke' ), 
                             $jobs_query->found_posts 
                         ); ?>
                     </span>
@@ -160,8 +160,8 @@ class Sleeve_KE_Job_Display {
                         <div class="no-jobs-icon">
                             <span class="dashicons dashicons-search"></span>
                         </div>
-                        <h3><?php _e( 'Aucun emploi trouvé', 'sleeve-ke' ); ?></h3>
-                        <p><?php _e( 'Essayez de modifier vos critères de recherche.', 'sleeve-ke' ); ?></p>
+                        <h3><?php _e( 'No jobs found', 'sleeve-ke' ); ?></h3>
+                        <p><?php _e( 'Try adjusting your search criteria.', 'sleeve-ke' ); ?></p>
                         <button class="btn btn-secondary clear-filters"><?php _e( 'Effacer les filtres', 'sleeve-ke' ); ?></button>
                     </div>
                 <?php endif; ?>
@@ -175,8 +175,8 @@ class Sleeve_KE_Job_Display {
                         'format'    => '?paged=%#%',
                         'current'   => max( 1, $paged ),
                         'total'     => $jobs_query->max_num_pages,
-                        'prev_text' => '&laquo; ' . __( 'Précédent', 'sleeve-ke' ),
-                        'next_text' => __( 'Suivant', 'sleeve-ke' ) . ' &raquo;',
+                        'prev_text' => '&laquo; ' . __( 'Previous', 'sleeve-ke' ),
+                        'next_text' => __( 'Next', 'sleeve-ke' ) . ' &raquo;',
                     ) );
                     ?>
                 </div>
@@ -194,7 +194,7 @@ class Sleeve_KE_Job_Display {
             <form class="search-form" id="jobs-search-form">
                 <div class="search-fields">
                     <div class="search-field">
-                        <label for="job-keyword"><?php _e( 'Mot-clé', 'sleeve-ke' ); ?></label>
+                        <label for="job-keyword"><?php _e( 'Keyword', 'sleeve-ke' ); ?></label>
                         <input type="text" 
                                id="job-keyword" 
                                name="keyword" 
@@ -203,21 +203,21 @@ class Sleeve_KE_Job_Display {
                     </div>
                     
                     <div class="search-field">
-                        <label for="job-location"><?php _e( 'Localisation', 'sleeve-ke' ); ?></label>
+                        <label for="job-location"><?php _e( 'Location', 'sleeve-ke' ); ?></label>
                         <input type="text" 
                                id="job-location" 
                                name="location" 
-                               placeholder="<?php _e( 'Ville, région...', 'sleeve-ke' ); ?>"
+                               placeholder="<?php _e( 'City, region...', 'sleeve-ke' ); ?>"
                                value="<?php echo esc_attr( isset( $_GET['location'] ) ? $_GET['location'] : '' ); ?>">
                     </div>
                     
                     <div class="search-actions">
                         <button type="submit" class="btn btn-primary search-btn">
                             <span class="dashicons dashicons-search"></span>
-                            <?php _e( 'Rechercher', 'sleeve-ke' ); ?>
+                            <?php _e( 'Search', 'sleeve-ke' ); ?>
                         </button>
                         <button type="button" class="btn btn-secondary clear-btn">
-                            <?php _e( 'Effacer', 'sleeve-ke' ); ?>
+                            <?php _e( 'Clear', 'sleeve-ke' ); ?>
                         </button>
                     </div>
                 </div>
@@ -241,32 +241,32 @@ class Sleeve_KE_Job_Display {
             
             <div class="filters-content">
                 <div class="filter-group">
-                    <label for="filter-job-type"><?php _e( 'Type d\'emploi', 'sleeve-ke' ); ?></label>
+                    <label for="filter-job-type"><?php _e( 'Job Type', 'sleeve-ke' ); ?></label>
                     <select id="filter-job-type" name="job_type">
-                        <option value=""><?php _e( 'Tous les types', 'sleeve-ke' ); ?></option>
-                        <option value="full-time"><?php _e( 'Temps plein', 'sleeve-ke' ); ?></option>
-                        <option value="part-time"><?php _e( 'Temps partiel', 'sleeve-ke' ); ?></option>
-                        <option value="contract"><?php _e( 'Contrat', 'sleeve-ke' ); ?></option>
+                        <option value=""><?php _e( 'All Types', 'sleeve-ke' ); ?></option>
+                        <option value="full-time"><?php _e( 'Full-time', 'sleeve-ke' ); ?></option>
+                        <option value="part-time"><?php _e( 'Part-time', 'sleeve-ke' ); ?></option>
+                        <option value="contract"><?php _e( 'Contract', 'sleeve-ke' ); ?></option>
                         <option value="freelance"><?php _e( 'Freelance', 'sleeve-ke' ); ?></option>
                         <option value="internship"><?php _e( 'Stage', 'sleeve-ke' ); ?></option>
                     </select>
                 </div>
 
                 <div class="filter-group">
-                    <label for="filter-experience"><?php _e( 'Expérience', 'sleeve-ke' ); ?></label>
+                    <label for="filter-experience"><?php _e( 'Experience', 'sleeve-ke' ); ?></label>
                     <select id="filter-experience" name="experience_level">
-                        <option value=""><?php _e( 'Tous niveaux', 'sleeve-ke' ); ?></option>
-                        <option value="entry"><?php _e( 'Débutant', 'sleeve-ke' ); ?></option>
-                        <option value="mid"><?php _e( 'Intermédiaire', 'sleeve-ke' ); ?></option>
+                        <option value=""><?php _e( 'All Levels', 'sleeve-ke' ); ?></option>
+                        <option value="entry"><?php _e( 'Entry Level', 'sleeve-ke' ); ?></option>
+                        <option value="mid"><?php _e( 'Mid Level', 'sleeve-ke' ); ?></option>
                         <option value="senior"><?php _e( 'Senior', 'sleeve-ke' ); ?></option>
-                        <option value="executive"><?php _e( 'Dirigeant', 'sleeve-ke' ); ?></option>
+                        <option value="executive"><?php _e( 'Executive', 'sleeve-ke' ); ?></option>
                     </select>
                 </div>
 
                 <div class="filter-group">
-                    <label for="filter-salary"><?php _e( 'Salaire minimum', 'sleeve-ke' ); ?></label>
+                    <label for="filter-salary"><?php _e( 'Minimum Salary', 'sleeve-ke' ); ?></label>
                     <select id="filter-salary" name="min_salary">
-                        <option value=""><?php _e( 'Indifférent', 'sleeve-ke' ); ?></option>
+                        <option value=""><?php _e( 'Any', 'sleeve-ke' ); ?></option>
                         <option value="30000">30 000€+</option>
                         <option value="40000">40 000€+</option>
                         <option value="50000">50 000€+</option>
@@ -277,31 +277,31 @@ class Sleeve_KE_Job_Display {
                 </div>
 
                 <div class="filter-group">
-                    <label for="filter-remote"><?php _e( 'Télétravail', 'sleeve-ke' ); ?></label>
-                    <select id="filter-remote" name="remote_work">
-                        <option value=""><?php _e( 'Indifférent', 'sleeve-ke' ); ?></option>
-                        <option value="yes"><?php _e( 'Télétravail possible', 'sleeve-ke' ); ?></option>
-                        <option value="hybrid"><?php _e( 'Hybride', 'sleeve-ke' ); ?></option>
-                        <option value="no"><?php _e( 'Présentiel uniquement', 'sleeve-ke' ); ?></option>
+                    <label for="filter-remote"><?php _e( 'Remote Work', 'sleeve-ke' ); ?></label>
+                    <select id="filter-remote" name="is_remote">
+                        <option value=""><?php _e( 'Any', 'sleeve-ke' ); ?></option>
+                        <option value="yes"><?php _e( 'Remote Possible', 'sleeve-ke' ); ?></option>
+                        <option value="hybrid"><?php _e( 'Hybrid', 'sleeve-ke' ); ?></option>
+                        <option value="no"><?php _e( 'On-site Only', 'sleeve-ke' ); ?></option>
                     </select>
                 </div>
 
                 <div class="filter-group">
-                    <label for="filter-date"><?php _e( 'Publié depuis', 'sleeve-ke' ); ?></label>
+                    <label for="filter-date"><?php _e( 'Posted Since', 'sleeve-ke' ); ?></label>
                     <select id="filter-date" name="date_posted">
-                        <option value=""><?php _e( 'Toutes les dates', 'sleeve-ke' ); ?></option>
-                        <option value="1"><?php _e( 'Aujourd\'hui', 'sleeve-ke' ); ?></option>
-                        <option value="7"><?php _e( '7 derniers jours', 'sleeve-ke' ); ?></option>
-                        <option value="30"><?php _e( '30 derniers jours', 'sleeve-ke' ); ?></option>
+                        <option value=""><?php _e( 'All dates', 'sleeve-ke' ); ?></option>
+                        <option value="1"><?php _e( 'Today', 'sleeve-ke' ); ?></option>
+                        <option value="7"><?php _e( 'Last 7 days', 'sleeve-ke' ); ?></option>
+                        <option value="30"><?php _e( 'Last 30 days', 'sleeve-ke' ); ?></option>
                     </select>
                 </div>
 
                 <div class="filter-actions">
                     <button type="button" class="btn btn-primary apply-filters">
-                        <?php _e( 'Appliquer les filtres', 'sleeve-ke' ); ?>
+                        <?php _e( 'Apply Filters', 'sleeve-ke' ); ?>
                     </button>
                     <button type="button" class="btn btn-secondary reset-filters">
-                        <?php _e( 'Réinitialiser', 'sleeve-ke' ); ?>
+                        <?php _e( 'Reset', 'sleeve-ke' ); ?>
                     </button>
                 </div>
             </div>
@@ -378,7 +378,7 @@ class Sleeve_KE_Job_Display {
                         <?php if ( $remote_work === 'yes' ) : ?>
                             <span class="remote-badge">
                                 <span class="dashicons dashicons-laptop"></span>
-                                <?php _e( 'Télétravail', 'sleeve-ke' ); ?>
+                                <?php _e( 'Remote', 'sleeve-ke' ); ?>
                             </span>
                         <?php endif; ?>
                     </div>
@@ -392,7 +392,7 @@ class Sleeve_KE_Job_Display {
                 
                 <?php if ( $experience_level ) : ?>
                     <div class="experience-level">
-                        <strong><?php _e( 'Expérience:', 'sleeve-ke' ); ?></strong>
+                        <strong><?php _e( 'Experience:', 'sleeve-ke' ); ?></strong>
                         <?php echo $this->get_experience_level_label( $experience_level ); ?>
                     </div>
                 <?php endif; ?>
@@ -417,12 +417,12 @@ class Sleeve_KE_Job_Display {
                 
                 <div class="job-actions">
                     <a href="<?php the_permalink(); ?>" class="btn btn-primary view-job">
-                        <?php _e( 'Voir le poste', 'sleeve-ke' ); ?>
+                        <?php _e( 'View Job', 'sleeve-ke' ); ?>
                     </a>
                     
                     <button class="btn btn-secondary save-job" data-job-id="<?php echo $post->ID; ?>">
                         <span class="dashicons dashicons-heart"></span>
-                        <?php _e( 'Sauvegarder', 'sleeve-ke' ); ?>
+                        <?php _e( 'Save', 'sleeve-ke' ); ?>
                     </button>
                 </div>
             </div>
@@ -533,8 +533,8 @@ class Sleeve_KE_Job_Display {
                     <div class="no-jobs-icon">
                         <span class="dashicons dashicons-search"></span>
                     </div>
-                    <h3>' . __( 'Aucun emploi trouvé', 'sleeve-ke' ) . '</h3>
-                    <p>' . __( 'Essayez de modifier vos critères de recherche.', 'sleeve-ke' ) . '</p>
+                    <h3>' . __( 'No jobs found', 'sleeve-ke' ) . '</h3>
+                    <p>' . __( 'Try adjusting your search criteria.', 'sleeve-ke' ) . '</p>
                   </div>';
         }
         $html = ob_get_clean();
@@ -641,10 +641,10 @@ class Sleeve_KE_Job_Display {
      */
     private function get_experience_level_label( $level ) {
         $labels = array(
-            'entry' => __( 'Débutant', 'sleeve-ke' ),
-            'mid' => __( 'Intermédiaire', 'sleeve-ke' ),
+            'entry' => __( 'Entry Level', 'sleeve-ke' ),
+            'mid' => __( 'Mid Level', 'sleeve-ke' ),
             'senior' => __( 'Senior', 'sleeve-ke' ),
-            'executive' => __( 'Dirigeant', 'sleeve-ke' )
+            'executive' => __( 'Executive', 'sleeve-ke' )
         );
 
         return isset( $labels[$level] ) ? $labels[$level] : $level;

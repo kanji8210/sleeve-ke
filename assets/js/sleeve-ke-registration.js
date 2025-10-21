@@ -55,7 +55,7 @@
                 var value = $field.val().trim();
                 
                 if (!value) {
-                    showFieldError($field, 'Ce champ est obligatoire');
+                    showFieldError($field, 'This field is required');
                     isValid = false;
                     if (!firstErrorField) firstErrorField = $field;
                 }
@@ -67,7 +67,7 @@
                 var email = $field.val().trim();
                 
                 if (email && !isValidEmail(email)) {
-                    showFieldError($field, 'Veuillez saisir une adresse email valide');
+                    showFieldError($field, 'Please enter a valid email address');
                     isValid = false;
                     if (!firstErrorField) firstErrorField = $field;
                 }
@@ -79,7 +79,7 @@
             
             if ($password.length && $confirmPassword.length) {
                 if ($password.val() !== $confirmPassword.val()) {
-                    showFieldError($confirmPassword, 'Les mots de passe ne correspondent pas');
+                    showFieldError($confirmPassword, 'Passwords do not match');
                     isValid = false;
                     if (!firstErrorField) firstErrorField = $confirmPassword;
                 }
@@ -89,7 +89,7 @@
             if ($password.length && $password.val()) {
                 var passwordStrength = checkPasswordStrength($password.val());
                 if (passwordStrength.score < 3) {
-                    showFieldError($password, 'Le mot de passe doit être plus fort: ' + passwordStrength.feedback.join(', '));
+                    showFieldError($password, 'Password must be stronger: ' + passwordStrength.feedback.join(', '));
                     isValid = false;
                     if (!firstErrorField) firstErrorField = $password;
                 }
@@ -101,7 +101,7 @@
                 var phone = $field.val().trim();
                 
                 if (phone && !isValidPhone(phone)) {
-                    showFieldError($field, 'Veuillez saisir un numéro de téléphone valide');
+                    showFieldError($field, 'Please enter a valid phone number');
                     isValid = false;
                     if (!firstErrorField) firstErrorField = $field;
                 }
@@ -112,7 +112,7 @@
                 var $field = $(this);
                 
                 if (!$field.is(':checked')) {
-                    showFieldError($field, 'Vous devez accepter les conditions d\'utilisation');
+                    showFieldError($field, 'You must accept the terms and conditions');
                     isValid = false;
                     if (!firstErrorField) firstErrorField = $field;
                 }
@@ -163,7 +163,7 @@
             clearFieldError($field);
             
             if (email && !isValidEmail(email)) {
-                showFieldError($field, 'Adresse email invalide');
+                showFieldError($field, 'Invalid email address');
             } else if (email) {
                 // Check email availability
                 checkEmailAvailability($field, email);
@@ -178,7 +178,7 @@
             clearFieldError($field);
             
             if (phone && !isValidPhone(phone)) {
-                showFieldError($field, 'Numéro de téléphone invalide');
+                showFieldError($field, 'Invalid phone number');
             }
         });
 
@@ -190,7 +190,7 @@
             clearFieldError($field);
             
             if ($field.val() && $password.val() && $field.val() !== $password.val()) {
-                showFieldError($field, 'Les mots de passe ne correspondent pas');
+                showFieldError($field, 'Passwords do not match');
             }
         });
     }
@@ -228,7 +228,7 @@
                 // Validate file size (max 5MB)
                 var maxSize = 5 * 1024 * 1024; // 5MB
                 if (file.size > maxSize) {
-                    showFieldError($field, 'Le fichier est trop volumineux (max 5MB)');
+                    showFieldError($field, 'File is too large (max 5MB)');
                     $field.val('');
                     return;
                 }
@@ -237,7 +237,7 @@
                 if ($field.attr('name') === 'cv_file') {
                     var allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
                     if (allowedTypes.indexOf(file.type) === -1) {
-                        showFieldError($field, 'Format de fichier non supporté (PDF, DOC, DOCX uniquement)');
+                        showFieldError($field, 'Unsupported file format (PDF, DOC, DOCX only)');
                         $field.val('');
                         return;
                     }
@@ -287,35 +287,35 @@
         
         // Length check
         if (password.length < 8) {
-            feedback.push('Au moins 8 caractères');
+            feedback.push('At least 8 characters');
         } else {
             score++;
         }
         
         // Lowercase check
         if (!/[a-z]/.test(password)) {
-            feedback.push('Une lettre minuscule');
+            feedback.push('One lowercase letter');
         } else {
             score++;
         }
         
         // Uppercase check
         if (!/[A-Z]/.test(password)) {
-            feedback.push('Une lettre majuscule');
+            feedback.push('One uppercase letter');
         } else {
             score++;
         }
         
         // Number check
         if (!/\d/.test(password)) {
-            feedback.push('Un chiffre');
+            feedback.push('One number');
         } else {
             score++;
         }
         
         // Special character check
         if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-            feedback.push('Un caractère spécial');
+            feedback.push('One special character');
         } else {
             score++;
         }
@@ -340,26 +340,26 @@
         
         if (strength.score === 0) {
             className = 'very-weak';
-            text = 'Très faible';
+            text = 'Very weak';
         } else if (strength.score <= 2) {
             className = 'weak';
-            text = 'Faible';
+            text = 'Weak';
         } else if (strength.score === 3) {
             className = 'medium';
-            text = 'Moyen';
+            text = 'Medium';
         } else if (strength.score === 4) {
             className = 'strong';
-            text = 'Fort';
+            text = 'Strong';
         } else {
             className = 'very-strong';
-            text = 'Très fort';
+            text = 'Very strong';
         }
         
         $fill.css('width', percentage + '%').attr('class', 'strength-fill ' + className);
         $text.text(text);
         
         if (strength.feedback.length > 0) {
-            $text.append(' - Manque: ' + strength.feedback.join(', '));
+            $text.append(' - Missing: ' + strength.feedback.join(', '));
         }
     }
 
@@ -368,7 +368,7 @@
      */
     function checkEmailAvailability($field, email) {
         // Add loading indicator
-        $field.after('<span class="email-check-loading">Vérification...</span>');
+        $field.after('<span class="email-check-loading">Checking...</span>');
         
         $.ajax({
             url: sleeve_ke_ajax.ajax_url,
@@ -383,7 +383,7 @@
                 
                 if (response.success) {
                     if (!response.data.available) {
-                        showFieldError($field, 'Cette adresse email est déjà utilisée');
+                        showFieldError($field, 'This email address is already in use');
                     }
                 }
             },

@@ -257,7 +257,7 @@
                 }
             },
             error: function() {
-                showErrorMessage('Une erreur est survenue lors du chargement des emplois.');
+                showErrorMessage('An error occurred while loading jobs.');
             },
             complete: function() {
                 $loading.hide();
@@ -288,13 +288,13 @@
                         .removeClass('dashicons-heart')
                         .addClass('dashicons-heart-filled');
                     
-                    showNotification('Emploi sauvegardé', 'success');
+                    showNotification('Job saved', 'success');
                 } else {
-                    showNotification(response.data || 'Erreur lors de la sauvegarde', 'error');
+                    showNotification(response.data || 'Error saving job', 'error');
                 }
             },
             error: function() {
-                showNotification('Erreur lors de la sauvegarde', 'error');
+                showNotification('Error saving job', 'error');
             },
             complete: function() {
                 $btn.removeClass('loading');
@@ -323,13 +323,13 @@
                         .removeClass('dashicons-heart-filled')
                         .addClass('dashicons-heart');
                     
-                    showNotification('Emploi retiré des favoris', 'success');
+                    showNotification('Job removed from favorites', 'success');
                 } else {
-                    showNotification(response.data || 'Erreur lors de la suppression', 'error');
+                    showNotification(response.data || 'Error removing job', 'error');
                 }
             },
             error: function() {
-                showNotification('Erreur lors de la suppression', 'error');
+                showNotification('Error removing job', 'error');
             },
             complete: function() {
                 $btn.removeClass('loading');
@@ -341,7 +341,7 @@
      * Update results count
      */
     function updateResultsCount(count) {
-        var text = count === 1 ? count + ' emploi trouvé' : count + ' emplois trouvés';
+        var text = count === 1 ? count + ' job found' : count + ' jobs found';
         $('.results-count').text(text);
     }
 
@@ -494,9 +494,9 @@
                 '<div class="no-jobs-icon">' +
                     '<span class="dashicons dashicons-warning"></span>' +
                 '</div>' +
-                '<h3>Erreur</h3>' +
+                '<h3>Error</h3>' +
                 '<p>' + message + '</p>' +
-                '<button class="btn btn-primary" onclick="location.reload()">Réessayer</button>' +
+                '<button class="btn btn-primary" onclick="location.reload()">Retry</button>' +
             '</div>'
         );
     }
