@@ -18,6 +18,9 @@ class Sleeve_KE_Job_Display {
      * Initialize the class and set its properties.
      */
     public function __construct() {
+        // Register job post type
+        add_action( 'init', array( $this, 'register_job_post_type' ) );
+        
         // Register shortcode
         add_shortcode( 'sleeve_ke_jobs', array( $this, 'jobs_shortcode' ) );
         
@@ -27,6 +30,122 @@ class Sleeve_KE_Job_Display {
         // Handle AJAX requests
         add_action( 'wp_ajax_sleeve_ke_filter_jobs', array( $this, 'ajax_filter_jobs' ) );
         add_action( 'wp_ajax_nopriv_sleeve_ke_filter_jobs', array( $this, 'ajax_filter_jobs' ) );
+    }
+
+    /**
+     * Register job post type
+     */
+    public function register_job_post_type() {
+        $labels = array(
+            'name'                  => _x( 'Jobs', 'Post type general name', 'sleeve-ke' ),
+            'singular_name'         => _x( 'Job', 'Post type singular name', 'sleeve-ke' ),
+            'menu_name'             => _x( 'Jobs', 'Admin Menu text', 'sleeve-ke' ),
+            'name_admin_bar'        => _x( 'Job', 'Add New on Toolbar', 'sleeve-ke' ),
+            'add_new'               => __( 'Add New', 'sleeve-ke' ),
+            'add_new_item'          => __( 'Add New Job', 'sleeve-ke' ),
+            'new_item'              => __( 'New Job', 'sleeve-ke' ),
+            'edit_item'             => __( 'Edit Job', 'sleeve-ke' ),
+            'view_item'             => __( 'View Job', 'sleeve-ke' ),
+            'all_items'             => __( 'All Jobs', 'sleeve-ke' ),
+            'search_items'          => __( 'Search Jobs', 'sleeve-ke' ),
+            'parent_item_colon'     => __( 'Parent Jobs:', 'sleeve-ke' ),
+            'not_found'             => __( 'No jobs found.', 'sleeve-ke' ),
+            'not_found_in_trash'    => __( 'No jobs found in Trash.', 'sleeve-ke' ),
+        );
+
+        $args = array(
+            'labels'             => $labels,
+            'public'             => true,
+            'publicly_queryable' => true,
+            'show_ui'            => true,
+            'show_in_menu'       => false, // Managed by admin class
+            'query_var'          => true,
+            'rewrite'            => array( 'slug' => 'job' ),
+            'capability_type'    => 'post',
+            'has_archive'        => true,
+            'hierarchical'       => false,
+            'menu_position'      => null,
+            'supports'           => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt' ),
+            'show_in_rest'       => true,
+        );
+
+        register_post_type( 'job', $args );
+        
+        // Create sample jobs if none exist (only in development)
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            add_action( 'wp_loaded', array( $this, 'create_sample_jobs' ) );
+        }
+    }
+
+    /**
+     * Create sample jobs for testing (only runs once)
+     */
+    public function create_sample_jobs() {
+        // Check if sample jobs already exist
+        if ( get_option( 'sleeve_ke_sample_jobs_created', false ) ) {
+            return;
+        }
+
+        $sample_jobs = array(
+            array(
+                'title' => 'Senior PHP Developer',
+                'content' => 'We are looking for an experienced PHP developer to join our dynamic team...',
+                'meta' => array(
+                    'job_type' => 'full-time',
+                    'job_location' => 'Nairobi, Kenya',
+                    'company_name' => 'TechCorp Kenya',
+                    'salary_min' => '80000',
+                    'salary_max' => '120000',
+                    'experience_level' => 'senior',
+                    'is_remote' => 'no'
+                )
+            ),
+            array(
+                'title' => 'Frontend Developer (React)',
+                'content' => 'Join our frontend team and help build amazing user interfaces with React...',
+                'meta' => array(
+                    'job_type' => 'full-time',
+                    'job_location' => 'Mombasa, Kenya',
+                    'company_name' => 'Digital Solutions Ltd',
+                    'salary_min' => '60000',
+                    'salary_max' => '90000',
+                    'experience_level' => 'mid',
+                    'is_remote' => 'yes'
+                )
+            ),
+            array(
+                'title' => 'Marketing Specialist',
+                'content' => 'We need a creative marketing specialist to drive our growth initiatives...',
+                'meta' => array(
+                    'job_type' => 'part-time',
+                    'job_location' => 'Kisumu, Kenya',
+                    'company_name' => 'Creative Agency',
+                    'salary_min' => '40000',
+                    'salary_max' => '60000',
+                    'experience_level' => 'entry',
+                    'is_remote' => 'hybrid'
+                )
+            )
+        );
+
+        foreach ( $sample_jobs as $job_data ) {
+            $post_id = wp_insert_post( array(
+                'post_title'   => $job_data['title'],
+                'post_content' => $job_data['content'],
+                'post_status'  => 'publish',
+                'post_type'    => 'job',
+                'post_author'  => 1
+            ) );
+
+            if ( $post_id && ! is_wp_error( $post_id ) ) {
+                foreach ( $job_data['meta'] as $key => $value ) {
+                    update_post_meta( $post_id, $key, $value );
+                }
+            }
+        }
+
+        // Mark sample jobs as created
+        update_option( 'sleeve_ke_sample_jobs_created', true );
     }
 
     /**
@@ -66,6 +185,9 @@ class Sleeve_KE_Job_Display {
      * Jobs display shortcode
      */
     public function jobs_shortcode( $atts ) {
+        // Debug: Log shortcode call
+        error_log( 'Sleeve KE Jobs Shortcode Called with attributes: ' . print_r( $atts, true ) );
+        
         $atts = shortcode_atts( array(
             'columns' => '3',
             'posts_per_page' => '12',
@@ -90,7 +212,14 @@ class Sleeve_KE_Job_Display {
         $atts['columns'] = max( 1, min( 4, $atts['columns'] ) ); // Limit to 1-4 columns
         $atts['posts_per_page'] = max( 1, min( 50, $atts['posts_per_page'] ) ); // Limit to 1-50 posts
 
+        // Add debug info to output when in debug mode
+        $debug_output = '';
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            $debug_output = '<!-- Sleeve KE Jobs Shortcode Executed -->';
+        }
+
         ob_start();
+        echo $debug_output;
         $this->display_jobs_listing( $atts );
         return ob_get_clean();
     }
@@ -99,6 +228,9 @@ class Sleeve_KE_Job_Display {
      * Display jobs listing with filters
      */
     private function display_jobs_listing( $atts ) {
+        // Debug: Log that function is called
+        error_log( 'Sleeve KE: display_jobs_listing called with atts: ' . print_r( $atts, true ) );
+        
         $paged = ( get_query_var( 'paged' ) ) ? get_query_var( 'paged' ) : 1;
         
         // Get jobs
@@ -134,11 +266,11 @@ class Sleeve_KE_Job_Display {
                 
                 <div class="layout-controls">
                     <button class="layout-btn grid-btn <?php echo $atts['layout'] === 'grid' ? 'active' : ''; ?>" 
-                            data-layout="grid" title="<?php _e( 'Vue grille', 'sleeve-ke' ); ?>">
+                            data-layout="grid" title="<?php _e( 'Grid View', 'sleeve-ke' ); ?>">
                         <span class="dashicons dashicons-grid-view"></span>
                     </button>
                     <button class="layout-btn list-btn <?php echo $atts['layout'] === 'list' ? 'active' : ''; ?>" 
-                            data-layout="list" title="<?php _e( 'Vue liste', 'sleeve-ke' ); ?>">
+                            data-layout="list" title="<?php _e( 'List View', 'sleeve-ke' ); ?>">
                         <span class="dashicons dashicons-list-view"></span>
                     </button>
                 </div>
@@ -146,7 +278,7 @@ class Sleeve_KE_Job_Display {
 
             <div class="jobs-loading" style="display: none;">
                 <div class="loading-spinner"></div>
-                <p><?php _e( 'Chargement des emplois...', 'sleeve-ke' ); ?></p>
+                <p><?php _e( 'Loading jobs...', 'sleeve-ke' ); ?></p>
             </div>
 
             <div class="jobs-grid layout-<?php echo esc_attr( $atts['layout'] ); ?> columns-<?php echo esc_attr( $atts['columns'] ); ?>">
@@ -162,7 +294,39 @@ class Sleeve_KE_Job_Display {
                         </div>
                         <h3><?php _e( 'No jobs found', 'sleeve-ke' ); ?></h3>
                         <p><?php _e( 'Try adjusting your search criteria.', 'sleeve-ke' ); ?></p>
-                        <button class="btn btn-secondary clear-filters"><?php _e( 'Effacer les filtres', 'sleeve-ke' ); ?></button>
+                        <button class="btn btn-secondary clear-filters"><?php _e( 'Clear Filters', 'sleeve-ke' ); ?></button>
+                        
+                        <!-- Debug Information -->
+                        <?php if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) : ?>
+                            <div style="margin-top: 20px; padding: 10px; background: #f9f9f9; border-left: 4px solid #0073aa;">
+                                <h4>Debug Information:</h4>
+                                <p><strong>Query found posts:</strong> <?php echo $jobs_query->found_posts; ?></p>
+                                <p><strong>Post type exists:</strong> <?php echo post_type_exists( 'job' ) ? 'Yes' : 'No'; ?></p>
+                                <p><strong>Total jobs (any status):</strong> 
+                                    <?php 
+                                    $all_jobs = get_posts( array(
+                                        'post_type' => 'job',
+                                        'post_status' => array( 'publish', 'private', 'draft' ),
+                                        'numberposts' => -1
+                                    ) );
+                                    echo count( $all_jobs );
+                                    ?>
+                                </p>
+                                <p><strong>Query args:</strong></p>
+                                <pre style="font-size: 11px; background: #fff; padding: 5px; overflow: auto;">
+                                    <?php 
+                                    $debug_args = array(
+                                        'post_type' => 'job',
+                                        'post_status' => 'publish',
+                                        'posts_per_page' => $atts['posts_per_page'],
+                                        'orderby' => $atts['orderby'],
+                                        'order' => $atts['order']
+                                    );
+                                    print_r( $debug_args ); 
+                                    ?>
+                                </pre>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -445,6 +609,9 @@ class Sleeve_KE_Job_Display {
             'tax_query' => array()
         );
 
+        // Debug: Log query args
+        error_log( 'Sleeve KE Jobs Query Args: ' . print_r( $args, true ) );
+
         // Filter by job type
         if ( ! empty( $atts['job_type'] ) ) {
             $args['meta_query'][] = array(
@@ -485,7 +652,34 @@ class Sleeve_KE_Job_Display {
             );
         }
 
-        return new WP_Query( $args );
+        $query = new WP_Query( $args );
+        
+        // Debug: Log query results
+        error_log( 'Sleeve KE Jobs Query Results: Found ' . $query->found_posts . ' posts' );
+        if ( $query->found_posts == 0 ) {
+            error_log( 'Sleeve KE Jobs Query SQL: ' . $query->request );
+            
+            // Debug: Check what post types exist
+            $post_types = get_post_types( array( 'public' => true ), 'names' );
+            error_log( 'Available post types: ' . print_r( $post_types, true ) );
+            
+            // Debug: Check if job post type is registered
+            if ( post_type_exists( 'job' ) ) {
+                error_log( 'Job post type exists' );
+            } else {
+                error_log( 'Job post type does NOT exist' );
+            }
+            
+            // Debug: Check for any posts of type job regardless of status
+            $all_jobs = get_posts( array(
+                'post_type' => 'job',
+                'post_status' => array( 'publish', 'private', 'draft' ),
+                'numberposts' => -1
+            ) );
+            error_log( 'Total jobs in database (any status): ' . count( $all_jobs ) );
+        }
+
+        return $query;
     }
 
     /**
