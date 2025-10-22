@@ -8,8 +8,27 @@
 (function($) {
     'use strict';
 
+    // Debug mode flag - can be set from PHP
+    const DEBUG_MODE = typeof sleeve_ke_debug !== 'undefined' ? sleeve_ke_debug : false;
+    
+    // Debug function
+    function debugLog(message, data = null) {
+        if (DEBUG_MODE || window.location.search.includes('debug=1')) {
+            console.log('🔍 Sleeve KE Debug:', message);
+            if (data) {
+                console.log('📊 Data:', data);
+            }
+        }
+    }
+
     // Document ready
     $(document).ready(function() {
+        debugLog('Document ready - initializing job display');
+        debugLog('Available globals:', {
+            'sleeve_ke_jobs_ajax': typeof sleeve_ke_jobs_ajax !== 'undefined' ? sleeve_ke_jobs_ajax : 'NOT FOUND',
+            'jQuery version': $.fn.jquery
+        });
+        
         initJobDisplay();
     });
 
@@ -17,6 +36,24 @@
      * Initialize job display functionality
      */
     function initJobDisplay() {
+        debugLog('Initializing job display components');
+        
+        // Check if job container exists
+        const $container = $('.sleeve-ke-jobs-container');
+        if ($container.length === 0) {
+            debugLog('❌ No job container found - shortcode may not be loaded');
+            return;
+        }
+        
+        debugLog('✅ Job container found', {
+            'container': $container.length,
+            'data-attributes': {
+                'columns': $container.data('columns'),
+                'posts-per-page': $container.data('posts-per-page'),
+                'layout': $container.data('layout')
+            }
+        });
+        
         // Search form handling
         setupSearchForm();
         
@@ -34,19 +71,33 @@
         
         // URL state management
         setupUrlState();
+        
+        debugLog('All components initialized');
     }
 
     /**
      * Setup search form
      */
     function setupSearchForm() {
-        $('#jobs-search-form').on('submit', function(e) {
+        debugLog('Setting up search form');
+        
+        const $searchForm = $('#jobs-search-form');
+        if ($searchForm.length === 0) {
+            debugLog('⚠️ Search form not found');
+            return;
+        }
+        
+        debugLog('✅ Search form found');
+        
+        $searchForm.on('submit', function(e) {
             e.preventDefault();
+            debugLog('Search form submitted');
             performSearch();
         });
 
         // Clear search
         $('.clear-btn').on('click', function() {
+            debugLog('Clear search button clicked');
             $('#jobs-search-form')[0].reset();
             performSearch();
         });
@@ -133,15 +184,33 @@
      * Setup job actions
      */
     function setupJobActions() {
+        debugLog('Setting up job actions');
+        
         // Save job
         $(document).on('click', '.save-job', function(e) {
             e.preventDefault();
+            debugLog('Save job button clicked');
+            
             var $btn = $(this);
             var jobId = $btn.data('job-id');
             
+            debugLog('Job action details:', {
+                'jobId': jobId,
+                'buttonHtml': $btn.prop('outerHTML'),
+                'isSaved': $btn.hasClass('saved')
+            });
+            
+            if (!jobId) {
+                debugLog('❌ No job ID found on button');
+                showNotification('Error: Job ID not found', 'error');
+                return;
+            }
+            
             if ($btn.hasClass('saved')) {
+                debugLog('Unsaving job:', jobId);
                 unsaveJob(jobId, $btn);
             } else {
+                debugLog('Saving job:', jobId);
                 saveJob(jobId, $btn);
             }
         });
@@ -149,9 +218,21 @@
         // Apply to job (if apply functionality exists)
         $(document).on('click', '.apply-job', function(e) {
             e.preventDefault();
+            debugLog('Apply to job button clicked');
+            
             var jobId = $(this).data('job-id');
+            debugLog('Apply to job ID:', jobId);
+            
+            if (!jobId) {
+                debugLog('❌ No job ID found for apply action');
+                showNotification('Error: Job ID not found', 'error');
+                return;
+            }
+            
             showApplyModal(jobId);
         });
+        
+        debugLog('✅ Job actions set up complete');
     }
 
     /**
@@ -193,10 +274,17 @@
      * Perform search with current filters
      */
     function performSearch(page = 1, updateUrl = true) {
+        debugLog('Performing search', { page: page, updateUrl: updateUrl });
+        
         var $container = $('.sleeve-ke-jobs-container');
         var $grid = $('.jobs-grid');
         var $loading = $('.jobs-loading');
         var $resultsHeader = $('.jobs-results-header');
+        
+        if ($container.length === 0) {
+            debugLog('❌ Job container not found for search');
+            return;
+        }
         
         // Show loading
         $loading.show();
@@ -225,6 +313,15 @@
         params.min_salary = $('#filter-salary').val();
         params.remote_work = $('#filter-remote').val();
         params.date_posted = $('#filter-date').val();
+        
+        debugLog('Search parameters:', params);
+
+        // Check for required AJAX data
+        if (typeof sleeve_ke_jobs_ajax === 'undefined') {
+            debugLog('❌ AJAX data not available');
+            showErrorMessage('AJAX configuration error. Please refresh the page.');
+            return;
+        }
 
         // Update URL if needed
         if (updateUrl) {
@@ -232,12 +329,25 @@
         }
 
         // Perform AJAX request
+        debugLog('Sending AJAX request to:', sleeve_ke_jobs_ajax.ajax_url);
+        
         $.ajax({
             url: sleeve_ke_jobs_ajax.ajax_url,
             type: 'POST',
             data: params,
+            beforeSend: function() {
+                debugLog('AJAX request started');
+            },
             success: function(response) {
+                debugLog('AJAX response received:', response);
+                
                 if (response.success) {
+                    debugLog('✅ Search successful', {
+                        'found_posts': response.data.found_posts,
+                        'max_pages': response.data.max_pages,
+                        'html_length': response.data.html ? response.data.html.length : 0
+                    });
+                    
                     // Update results
                     $grid.html(response.data.html);
                     
@@ -270,18 +380,30 @@
      * Save job
      */
     function saveJob(jobId, $btn) {
+        debugLog('Attempting to save job', { jobId: jobId });
+        
         $btn.addClass('loading');
+        
+        const requestData = {
+            action: 'sleeve_ke_save_job',
+            job_id: jobId,
+            nonce: sleeve_ke_jobs_ajax.nonce
+        };
+        
+        debugLog('Save job request data:', requestData);
         
         $.ajax({
             url: sleeve_ke_jobs_ajax.ajax_url,
             type: 'POST',
-            data: {
-                action: 'sleeve_ke_save_job',
-                job_id: jobId,
-                nonce: sleeve_ke_jobs_ajax.nonce
+            data: requestData,
+            beforeSend: function() {
+                debugLog('Sending save job request');
             },
             success: function(response) {
+                debugLog('Save job response:', response);
+                
                 if (response.success) {
+                    debugLog('✅ Job saved successfully');
                     $btn.addClass('saved')
                         .removeClass('loading')
                         .find('.dashicons')
@@ -290,13 +412,16 @@
                     
                     showNotification('Job saved', 'success');
                 } else {
+                    debugLog('❌ Failed to save job:', response.data);
                     showNotification(response.data || 'Error saving job', 'error');
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                debugLog('❌ AJAX error saving job:', { xhr: xhr, status: status, error: error });
                 showNotification('Error saving job', 'error');
             },
             complete: function() {
+                debugLog('Save job request completed');
                 $btn.removeClass('loading');
             }
         });
@@ -306,18 +431,30 @@
      * Unsave job
      */
     function unsaveJob(jobId, $btn) {
+        debugLog('Attempting to unsave job', { jobId: jobId });
+        
         $btn.addClass('loading');
+        
+        const requestData = {
+            action: 'sleeve_ke_unsave_job',
+            job_id: jobId,
+            nonce: sleeve_ke_jobs_ajax.nonce
+        };
+        
+        debugLog('Unsave job request data:', requestData);
         
         $.ajax({
             url: sleeve_ke_jobs_ajax.ajax_url,
             type: 'POST',
-            data: {
-                action: 'sleeve_ke_unsave_job',
-                job_id: jobId,
-                nonce: sleeve_ke_jobs_ajax.nonce
+            data: requestData,
+            beforeSend: function() {
+                debugLog('Sending unsave job request');
             },
             success: function(response) {
+                debugLog('Unsave job response:', response);
+                
                 if (response.success) {
+                    debugLog('✅ Job unsaved successfully');
                     $btn.removeClass('saved loading')
                         .find('.dashicons')
                         .removeClass('dashicons-heart-filled')
@@ -325,13 +462,16 @@
                     
                     showNotification('Job removed from favorites', 'success');
                 } else {
+                    debugLog('❌ Failed to unsave job:', response.data);
                     showNotification(response.data || 'Error removing job', 'error');
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                debugLog('❌ AJAX error unsaving job:', { xhr: xhr, status: status, error: error });
                 showNotification('Error removing job', 'error');
             },
             complete: function() {
+                debugLog('Unsave job request completed');
                 $btn.removeClass('loading');
             }
         });

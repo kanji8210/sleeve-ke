@@ -30,6 +30,10 @@ class Sleeve_KE_Job_Display {
         // Handle AJAX requests
         add_action( 'wp_ajax_sleeve_ke_filter_jobs', array( $this, 'ajax_filter_jobs' ) );
         add_action( 'wp_ajax_nopriv_sleeve_ke_filter_jobs', array( $this, 'ajax_filter_jobs' ) );
+        
+        // Handle job save/unsave AJAX requests
+        add_action( 'wp_ajax_sleeve_ke_save_job', array( $this, 'ajax_save_job' ) );
+        add_action( 'wp_ajax_sleeve_ke_unsave_job', array( $this, 'ajax_unsave_job' ) );
     }
 
     /**
@@ -206,6 +210,11 @@ class Sleeve_KE_Job_Display {
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
                 'nonce'    => wp_create_nonce( 'sleeve_ke_jobs_nonce' )
             ) );
+            
+            // Add debug flag if WP_DEBUG is enabled
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                wp_localize_script( 'sleeve-ke-job-display', 'sleeve_ke_debug', true );
+            }
         }
     }
 
@@ -877,5 +886,97 @@ class Sleeve_KE_Job_Display {
         );
 
         return isset( $labels[$level] ) ? $labels[$level] : $level;
+    }
+
+    /**
+     * AJAX handler for saving a job
+     */
+    public function ajax_save_job() {
+        // Debug: Log the save job request
+        error_log( 'Sleeve KE: Save job AJAX request - POST data: ' . print_r( $_POST, true ) );
+        
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'sleeve_ke_jobs_nonce' ) ) {
+            error_log( 'Sleeve KE: Save job - Invalid nonce' );
+            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sleeve-ke' ) ) );
+        }
+
+        // Check if user is logged in
+        if ( ! is_user_logged_in() ) {
+            error_log( 'Sleeve KE: Save job - User not logged in' );
+            wp_send_json_error( array( 'message' => __( 'You must be logged in to save jobs', 'sleeve-ke' ) ) );
+        }
+
+        $job_id = intval( $_POST['job_id'] );
+        $user_id = get_current_user_id();
+
+        if ( ! $job_id ) {
+            error_log( 'Sleeve KE: Save job - Invalid job ID: ' . $job_id );
+            wp_send_json_error( array( 'message' => __( 'Invalid job ID', 'sleeve-ke' ) ) );
+        }
+
+        // Check if job exists
+        if ( ! get_post( $job_id ) || get_post_type( $job_id ) !== 'job' ) {
+            error_log( 'Sleeve KE: Save job - Job not found: ' . $job_id );
+            wp_send_json_error( array( 'message' => __( 'Job not found', 'sleeve-ke' ) ) );
+        }
+
+        // Save the job to user meta (or custom table if you prefer)
+        $saved_jobs = get_user_meta( $user_id, 'saved_jobs', true );
+        if ( ! is_array( $saved_jobs ) ) {
+            $saved_jobs = array();
+        }
+
+        if ( ! in_array( $job_id, $saved_jobs ) ) {
+            $saved_jobs[] = $job_id;
+            update_user_meta( $user_id, 'saved_jobs', $saved_jobs );
+            
+            error_log( 'Sleeve KE: Job saved successfully - Job ID: ' . $job_id . ', User ID: ' . $user_id );
+            wp_send_json_success( array( 'message' => __( 'Job saved successfully', 'sleeve-ke' ) ) );
+        } else {
+            error_log( 'Sleeve KE: Job already saved - Job ID: ' . $job_id . ', User ID: ' . $user_id );
+            wp_send_json_success( array( 'message' => __( 'Job already saved', 'sleeve-ke' ) ) );
+        }
+    }
+
+    /**
+     * AJAX handler for unsaving a job
+     */
+    public function ajax_unsave_job() {
+        // Debug: Log the unsave job request
+        error_log( 'Sleeve KE: Unsave job AJAX request - POST data: ' . print_r( $_POST, true ) );
+        
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'sleeve_ke_jobs_nonce' ) ) {
+            error_log( 'Sleeve KE: Unsave job - Invalid nonce' );
+            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sleeve-ke' ) ) );
+        }
+
+        // Check if user is logged in
+        if ( ! is_user_logged_in() ) {
+            error_log( 'Sleeve KE: Unsave job - User not logged in' );
+            wp_send_json_error( array( 'message' => __( 'You must be logged in to manage saved jobs', 'sleeve-ke' ) ) );
+        }
+
+        $job_id = intval( $_POST['job_id'] );
+        $user_id = get_current_user_id();
+
+        if ( ! $job_id ) {
+            error_log( 'Sleeve KE: Unsave job - Invalid job ID: ' . $job_id );
+            wp_send_json_error( array( 'message' => __( 'Invalid job ID', 'sleeve-ke' ) ) );
+        }
+
+        // Remove the job from user meta
+        $saved_jobs = get_user_meta( $user_id, 'saved_jobs', true );
+        if ( is_array( $saved_jobs ) ) {
+            $saved_jobs = array_diff( $saved_jobs, array( $job_id ) );
+            update_user_meta( $user_id, 'saved_jobs', $saved_jobs );
+            
+            error_log( 'Sleeve KE: Job unsaved successfully - Job ID: ' . $job_id . ', User ID: ' . $user_id );
+            wp_send_json_success( array( 'message' => __( 'Job removed from saved jobs', 'sleeve-ke' ) ) );
+        } else {
+            error_log( 'Sleeve KE: No saved jobs found for user: ' . $user_id );
+            wp_send_json_success( array( 'message' => __( 'Job was not in saved jobs', 'sleeve-ke' ) ) );
+        }
     }
 }
