@@ -368,6 +368,7 @@
                 }
             },
             error: function() {
+                debugLog('❌ AJAX error during search - unknown error');
                 showErrorMessage('An error occurred while loading jobs.');
             },
             complete: function() {
@@ -418,7 +419,14 @@
                 }
             },
             error: function(xhr, status, error) {
-                debugLog('❌ AJAX error saving job:', { xhr: xhr, status: status, error: error });
+                var respText = xhr && xhr.responseText ? xhr.responseText : '(no response)';
+                debugLog('❌ AJAX error saving job', { status: xhr.status, statusText: xhr.statusText, error: error, responseText: respText });
+                try {
+                    var parsed = JSON.parse(respText);
+                    debugLog('Parsed error JSON:', parsed);
+                } catch (e) {
+                    // not JSON
+                }
                 showNotification('Error saving job', 'error');
             },
             complete: function() {
@@ -468,7 +476,14 @@
                 }
             },
             error: function(xhr, status, error) {
-                debugLog('❌ AJAX error unsaving job:', { xhr: xhr, status: status, error: error });
+                var respText = xhr && xhr.responseText ? xhr.responseText : '(no response)';
+                debugLog('❌ AJAX error unsaving job', { status: xhr.status, statusText: xhr.statusText, error: error, responseText: respText });
+                try {
+                    var parsed = JSON.parse(respText);
+                    debugLog('Parsed error JSON:', parsed);
+                } catch (e) {
+                    // not JSON
+                }
                 showNotification('Error removing job', 'error');
             },
             complete: function() {
