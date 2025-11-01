@@ -205,16 +205,13 @@ class Sleeve_KE_Job_Display {
                 true 
             );
             
-            // Localize script for AJAX
+            // Localize script for AJAX and include user and debug flags
             wp_localize_script( 'sleeve-ke-job-display', 'sleeve_ke_jobs_ajax', array(
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
-                'nonce'    => wp_create_nonce( 'sleeve_ke_jobs_nonce' )
+                'nonce'    => wp_create_nonce( 'sleeve_ke_jobs_nonce' ),
+                'user_id'  => get_current_user_id(),
+                'debug'    => ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ? true : false
             ) );
-            
-            // Add debug flag if WP_DEBUG is enabled
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                wp_localize_script( 'sleeve-ke-job-display', 'sleeve_ke_debug', true );
-            }
         }
     }
 
@@ -723,9 +720,14 @@ class Sleeve_KE_Job_Display {
      * AJAX handler for filtering jobs
      */
     public function ajax_filter_jobs() {
+        // Log incoming request for debugging
+        $remote_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+        error_log( 'Sleeve KE: AJAX filter request from IP: ' . $remote_ip . ' - POST: ' . print_r( $_POST, true ) . ' - User ID: ' . get_current_user_id() );
+
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'sleeve_ke_jobs_nonce' ) ) {
-            wp_die( 'Security check failed' );
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sleeve_ke_jobs_nonce' ) ) {
+            error_log( 'Sleeve KE: AJAX filter - Invalid or missing nonce: ' . ( isset( $_POST['nonce'] ) ? $_POST['nonce'] : '(none)' ) );
+            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sleeve-ke' ) ) );
         }
 
         $filters = array();

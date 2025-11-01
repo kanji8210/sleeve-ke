@@ -8,11 +8,9 @@
 (function($) {
     'use strict';
 
-    // Debug mode flag - can be set from PHP or localized object
-    const DEBUG_MODE = (typeof sleeve_ke_jobs_ajax !== 'undefined' && sleeve_ke_jobs_ajax.debug) ? sleeve_ke_jobs_ajax.debug : (typeof sleeve_ke_debug !== 'undefined' ? sleeve_ke_debug : false);
-    
-    // Fallback localized AJAX object
+    // Fallback localized AJAX object and debug flag
     var AJAX = (typeof sleeve_ke_jobs_ajax !== 'undefined') ? sleeve_ke_jobs_ajax : { ajax_url: '', nonce: '', user_id: 0, debug: false };
+    const DEBUG_MODE = (typeof AJAX !== 'undefined' && AJAX.debug) ? AJAX.debug : (typeof sleeve_ke_debug !== 'undefined' ? sleeve_ke_debug : false);
 
     // Debug function
     function debugLog(message, data = null) {
@@ -662,15 +660,17 @@
      */
     function initSavedJobsState() {
         // Check if user is logged in and load saved jobs
-        if (sleeve_ke_jobs_ajax.user_id) {
+        if (AJAX.user_id) {
+            debugLog('Loading saved jobs for user: ' + AJAX.user_id);
             $.ajax({
-                url: sleeve_ke_jobs_ajax.ajax_url,
+                url: AJAX.ajax_url,
                 type: 'POST',
                 data: {
                     action: 'sleeve_ke_get_saved_jobs',
-                    nonce: sleeve_ke_jobs_ajax.nonce
+                    nonce: AJAX.nonce
                 },
                 success: function(response) {
+                    debugLog('Saved jobs response:', response);
                     if (response.success && response.data.length > 0) {
                         response.data.forEach(function(jobId) {
                             $('.save-job[data-job-id="' + jobId + '"]')
@@ -680,6 +680,9 @@
                                 .addClass('dashicons-heart-filled');
                         });
                     }
+                },
+                error: function(xhr, status, error) {
+                    debugLog('Error loading saved jobs:', { xhr: xhr, status: status, error: error });
                 }
             });
         }
