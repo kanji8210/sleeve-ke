@@ -8,9 +8,12 @@
 (function($) {
     'use strict';
 
-    // Debug mode flag - can be set from PHP
-    const DEBUG_MODE = typeof sleeve_ke_debug !== 'undefined' ? sleeve_ke_debug : false;
+    // Debug mode flag - can be set from PHP or localized object
+    const DEBUG_MODE = (typeof sleeve_ke_jobs_ajax !== 'undefined' && sleeve_ke_jobs_ajax.debug) ? sleeve_ke_jobs_ajax.debug : (typeof sleeve_ke_debug !== 'undefined' ? sleeve_ke_debug : false);
     
+    // Fallback localized AJAX object
+    var AJAX = (typeof sleeve_ke_jobs_ajax !== 'undefined') ? sleeve_ke_jobs_ajax : { ajax_url: '', nonce: '', user_id: 0, debug: false };
+
     // Debug function
     function debugLog(message, data = null) {
         if (DEBUG_MODE || window.location.search.includes('debug=1')) {
@@ -25,7 +28,7 @@
     $(document).ready(function() {
         debugLog('Document ready - initializing job display');
         debugLog('Available globals:', {
-            'sleeve_ke_jobs_ajax': typeof sleeve_ke_jobs_ajax !== 'undefined' ? sleeve_ke_jobs_ajax : 'NOT FOUND',
+            'sleeve_ke_jobs_ajax': typeof AJAX !== 'undefined' ? AJAX : 'NOT FOUND',
             'jQuery version': $.fn.jquery
         });
         
@@ -293,7 +296,7 @@
         // Collect search parameters
         var params = {
             action: 'sleeve_ke_filter_jobs',
-            nonce: sleeve_ke_jobs_ajax.nonce,
+            nonce: AJAX.nonce,
             paged: page,
             columns: $container.data('columns'),
             posts_per_page: $container.data('posts-per-page'),
@@ -317,7 +320,7 @@
         debugLog('Search parameters:', params);
 
         // Check for required AJAX data
-        if (typeof sleeve_ke_jobs_ajax === 'undefined') {
+        if (!AJAX.ajax_url) {
             debugLog('❌ AJAX data not available');
             showErrorMessage('AJAX configuration error. Please refresh the page.');
             return;
@@ -329,10 +332,10 @@
         }
 
         // Perform AJAX request
-        debugLog('Sending AJAX request to:', sleeve_ke_jobs_ajax.ajax_url);
+    debugLog('Sending AJAX request to:', AJAX.ajax_url);
         
         $.ajax({
-            url: sleeve_ke_jobs_ajax.ajax_url,
+            url: AJAX.ajax_url,
             type: 'POST',
             data: params,
             beforeSend: function() {
@@ -387,13 +390,13 @@
         const requestData = {
             action: 'sleeve_ke_save_job',
             job_id: jobId,
-            nonce: sleeve_ke_jobs_ajax.nonce
+            nonce: AJAX.nonce
         };
         
         debugLog('Save job request data:', requestData);
         
         $.ajax({
-            url: sleeve_ke_jobs_ajax.ajax_url,
+            url: AJAX.ajax_url,
             type: 'POST',
             data: requestData,
             beforeSend: function() {
@@ -438,13 +441,13 @@
         const requestData = {
             action: 'sleeve_ke_unsave_job',
             job_id: jobId,
-            nonce: sleeve_ke_jobs_ajax.nonce
+            nonce: AJAX.nonce
         };
         
         debugLog('Unsave job request data:', requestData);
         
         $.ajax({
-            url: sleeve_ke_jobs_ajax.ajax_url,
+            url: AJAX.ajax_url,
             type: 'POST',
             data: requestData,
             beforeSend: function() {
