@@ -290,6 +290,20 @@
         // Show loading
         $loading.show();
         $grid.hide();
+
+        // Ensure there's a debug area near filters to show found count
+        var $filterDebug = $container.find('.filters-debug');
+        if ($filterDebug.length === 0) {
+            var $filtersSection = $container.find('.jobs-filters');
+            if ($filtersSection.length) {
+                $filterDebug = $('<div class="filters-debug" style="margin-top:10px;font-size:13px;color:#333;background:#fff;border-left:4px solid #0073aa;padding:8px;">');
+                $filtersSection.first().after($filterDebug);
+            } else {
+                $filterDebug = $('<div class="filters-debug" style="margin-top:10px;font-size:13px;color:#333;">');
+                $container.find('.jobs-results-header').first().after($filterDebug);
+            }
+        }
+        $filterDebug.html('Searching...');
         
         // Collect search parameters
         var params = {
@@ -365,6 +379,17 @@
                     
                     // Trigger custom event
                     $(document).trigger('sleeve_ke_jobs_loaded', [response.data]);
+
+                    // Update filter debug area with found posts and debug info
+                    try {
+                        var found = response.data.found_posts !== undefined ? response.data.found_posts : '(unknown)';
+                        $filterDebug.html('<strong>Found posts:</strong> ' + found + '<br>');
+                        if (DEBUG_MODE) {
+                            $filterDebug.append('<pre style="white-space:pre-wrap;overflow:auto;max-height:200px;">' + JSON.stringify(response.data, null, 2) + '</pre>');
+                        }
+                    } catch (e) {
+                        debugLog('Error updating filter debug area:', e);
+                    }
                 }
             },
             error: function() {
