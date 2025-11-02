@@ -730,6 +730,24 @@ class Sleeve_KE_Job_Display {
             wp_send_json_error( array( 'message' => __( 'Security check failed', 'sleeve-ke' ) ) );
         }
 
+        // Pre-query diagnostics: how many published jobs exist before applying filters
+        $published_count = 0;
+        if ( post_type_exists( 'job' ) ) {
+            $counts = wp_count_posts( 'job' );
+            if ( is_object( $counts ) && isset( $counts->publish ) ) {
+                $published_count = intval( $counts->publish );
+            }
+        }
+
+        // Also count jobs regardless of status
+        $all_jobs = get_posts( array(
+            'post_type' => 'job',
+            'post_status' => array( 'publish', 'private', 'draft' ),
+            'numberposts' => -1
+        ) );
+        $all_jobs_count = count( $all_jobs );
+        error_log( 'Sleeve KE: Pre-filter job counts - published: ' . $published_count . ', total(any status): ' . $all_jobs_count );
+
         $filters = array();
         $allowed_filters = array( 'keyword', 'location', 'job_type', 'experience_level', 'min_salary', 'remote_work', 'date_posted' );
         
@@ -782,7 +800,10 @@ class Sleeve_KE_Job_Display {
         wp_send_json_success( array(
             'html' => $html,
             'found_posts' => $jobs_query->found_posts,
-            'max_pages' => $jobs_query->max_num_pages
+            'max_pages' => $jobs_query->max_num_pages,
+            'pre_total_published' => $published_count,
+            'pre_total_all_status' => $all_jobs_count,
+            'query_args' => $args
         ) );
     }
 

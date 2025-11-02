@@ -355,8 +355,17 @@
             },
             success: function(response) {
                 debugLog('AJAX response received:', response);
-                
-                if (response.success) {
+
+                // Handle WordPress '0' response which indicates the action was not found or request invalid
+                if (typeof response === 'string' && response.trim() === '0') {
+                    debugLog('Received raw "0" response from admin-ajax.php — action may not be registered or request blocked.');
+                    $filterDebug.html('<strong>AJAX returned:</strong> 0 — action not found or blocked. Check server logs.');
+                    // Show the request payload for debugging
+                    $filterDebug.append('<div style="margin-top:8px;color:#a33;">Request payload: <pre>' + JSON.stringify(params, null, 2) + '</pre></div>');
+                    return;
+                }
+
+                if (response && response.success) {
                     debugLog('✅ Search successful', {
                         'found_posts': response.data.found_posts,
                         'max_pages': response.data.max_pages,
@@ -384,6 +393,13 @@
                     try {
                         var found = response.data.found_posts !== undefined ? response.data.found_posts : '(unknown)';
                         $filterDebug.html('<strong>Found posts:</strong> ' + found + '<br>');
+                        // include pre-filter counts if present
+                        if (response.data.pre_total_published !== undefined) {
+                            $filterDebug.append('<strong>Published before filter:</strong> ' + response.data.pre_total_published + '<br>');
+                        }
+                        if (response.data.pre_total_all_status !== undefined) {
+                            $filterDebug.append('<strong>Total (any status):</strong> ' + response.data.pre_total_all_status + '<br>');
+                        }
                         if (DEBUG_MODE) {
                             $filterDebug.append('<pre style="white-space:pre-wrap;overflow:auto;max-height:200px;">' + JSON.stringify(response.data, null, 2) + '</pre>');
                         }
