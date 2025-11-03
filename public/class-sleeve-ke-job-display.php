@@ -521,7 +521,7 @@ class Sleeve_KE_Job_Display {
         $salary = get_post_meta( $post->ID, 'salary_range', true );
         $featured = get_post_meta( $post->ID, 'featured', true );
         $company_logo = get_post_meta( $post->ID, 'company_logo', true );
-        $remote_work = get_post_meta( $post->ID, 'remote_work', true );
+    $remote_work = get_post_meta( $post->ID, 'is_remote', true );
         $experience_level = get_post_meta( $post->ID, 'experience_level', true );
         
         $job_classes = array( 'job-card' );
