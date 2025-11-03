@@ -1,0 +1,32 @@
+.status-select.updating {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.status-published {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-badge.status-draft {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.status-badge.status-archived {
+    background: #e2e3e5;
+    color: #41464b;
+}
+
+.status-badge.status-expired {
+    background: #f8d7da;
+    color: #721c24;
+}

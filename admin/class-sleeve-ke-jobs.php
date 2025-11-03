@@ -6,6 +6,10 @@
  * @subpackage Sleeve_KE/admin
  */
 
+// Include required classes
+require_once plugin_dir_path(__FILE__) . 'class-sleeve-ke-job-form-handler.php';
+require_once plugin_dir_path(__FILE__) . 'class-sleeve-ke-job-view-handler.php';
+
 /**
  * Jobs management class.
  *
@@ -24,6 +28,45 @@ class Sleeve_KE_Jobs {
         
         // Handle form submissions on init
         add_action('init', array($this, 'handle_form_submissions'));
+        
+        // Enqueue scripts and styles
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
+    }
+
+    /**
+     * Enqueue scripts and styles
+     */
+    public function enqueue_scripts($hook) {
+        if (strpos($hook, 'sleeve-ke-jobs') === false) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'sleeve-ke-jobs-css',
+            plugin_dir_url(__FILE__) . '../assets/css/jobs-admin.css',
+            array(),
+            '1.0.0'
+        );
+
+        wp_enqueue_script(
+            'sleeve-ke-jobs-js',
+            plugin_dir_url(__FILE__) . '../assets/js/jobs-admin.js',
+            array('jquery'),
+            '1.0.0',
+            true
+        );
+
+        // Localize script for AJAX
+        wp_localize_script('sleeve-ke-jobs-js', 'sleeve_ke_ajax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('update_job_status'),
+            'i18n' => array(
+                'status_updated' => __('Status updated successfully!', 'sleeve-ke'),
+                'error_updating' => __('Error updating status', 'sleeve-ke'),
+                'network_error' => __('Network error. Please try again.', 'sleeve-ke'),
+                'confirm_delete' => __('Are you sure?', 'sleeve-ke')
+            )
+        ));
     }
 
     /**
@@ -129,26 +172,6 @@ class Sleeve_KE_Jobs {
             echo '</div>';
             delete_transient('sleeve_ke_job_form_errors');
         }
-
-        // Debug information (only show if WP_DEBUG is enabled)
-        if (defined('WP_DEBUG') && WP_DEBUG && isset($_GET['debug'])) {
-            $this->display_debug_info();
-        }
-    }
-
-    /**
-     * Display debug information
-     */
-    private function display_debug_info() {
-        echo '<div class="notice notice-info"><pre>';
-        echo "Debug Information:\n";
-        echo "Current User: " . wp_get_current_user()->display_name . "\n";
-        echo "User Roles: " . implode(', ', wp_get_current_user()->roles) . "\n";
-        echo "Can Add Jobs: " . ($this->user_can_add_jobs() ? 'Yes' : 'No') . "\n";
-        echo "Can Manage All Jobs: " . ($this->user_can_manage_all_jobs() ? 'Yes' : 'No') . "\n";
-        echo "POST Data: " . print_r($_POST, true) . "\n";
-        echo "GET Data: " . print_r($_GET, true) . "\n";
-        echo '</pre></div>';
     }
 
     /**
@@ -160,20 +183,14 @@ class Sleeve_KE_Jobs {
         $statuses = $this->get_status_options();
         $current_user = wp_get_current_user();
         $can_add_jobs = $this->user_can_add_jobs();
+        
         ?>
-        <div class="wrap">
+        <div class="wrap sleeve-ke-jobs-wrap">
             <h1>
                 <?php esc_html_e('Job Postings', 'sleeve-ke'); ?>
                 <?php if ($can_add_jobs) : ?>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=sleeve-ke-jobs&action=add')); ?>" class="page-title-action">
                         <?php esc_html_e('Add New Job', 'sleeve-ke'); ?>
-                    </a>
-                <?php endif; ?>
-                
-                <!-- Debug button -->
-                <?php if (defined('WP_DEBUG') && WP_DEBUG) : ?>
-                    <a href="<?php echo esc_url(add_query_arg('debug', '1')); ?>" class="page-title-action" style="background: #666; border-color: #555;">
-                        <?php esc_html_e('Debug Info', 'sleeve-ke'); ?>
                     </a>
                 <?php endif; ?>
             </h1>
@@ -378,521 +395,52 @@ class Sleeve_KE_Jobs {
                 </div>
             </div>
         </div>
-        
-        <script>
-        jQuery(document).ready(function($) {
-            // Handle status change
-            $('.status-select').on('change', function() {
-                var jobId = $(this).data('job-id');
-                var newStatus = $(this).val();
-                var $select = $(this);
-                
-                // Show loading state
-                $select.prop('disabled', true).addClass('updating');
-                
-                $.post(ajaxurl, {
-                    action: 'update_job_status',
-                    job_id: jobId,
-                    status: newStatus,
-                    nonce: '<?php echo wp_create_nonce('update_job_status'); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        // Update the status badge
-                        var $row = $select.closest('tr');
-                        var $badge = $row.find('.status-badge');
-                        $badge.removeClass().addClass('status-badge status-' + newStatus).text(response.data.new_status_label);
-                        
-                        // Show success message
-                        showNotice('<?php esc_html_e('Status updated successfully!', 'sleeve-ke'); ?>', 'success');
-                    } else {
-                        // Revert select to original value
-                        $select.val($select.data('original-value'));
-                        showNotice(response.data.message || '<?php esc_html_e('Error updating status', 'sleeve-ke'); ?>', 'error');
-                    }
-                }).fail(function() {
-                    $select.val($select.data('original-value'));
-                    showNotice('<?php esc_html_e('Network error. Please try again.', 'sleeve-ke'); ?>', 'error');
-                }).always(function() {
-                    $select.prop('disabled', false).removeClass('updating');
-                });
-            });
-            
-            // Store original values
-            $('.status-select').each(function() {
-                $(this).data('original-value', $(this).val());
-            });
-            
-            // Handle select all checkbox
-            $('#cb-select-all').on('change', function() {
-                $('input[name="job_ids[]"]').prop('checked', this.checked);
-            });
-            
-            // Show notice function
-            function showNotice(message, type) {
-                var notice = $('<div class="notice notice-' + type + ' is-dismissible"><p>' + message + '</p></div>');
-                $('.wrap h1').after(notice);
-                
-                // Auto remove after 5 seconds
-                setTimeout(function() {
-                    notice.fadeOut(function() {
-                        notice.remove();
-                    });
-                }, 5000);
-            }
-        });
-        </script>
-        
-        <style>
-        .status-select.updating {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .status-badge.status-published {
-            background: #d1e7dd;
-            color: #0f5132;
-        }
-        .status-badge.status-draft {
-            background: #fff3cd;
-            color: #664d03;
-        }
-        .status-badge.status-archived {
-            background: #e2e3e5;
-            color: #41464b;
-        }
-        .status-badge.status-expired {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        </style>
         <?php
     }
 
     /**
-     * Display add job form.
+     * Display the add job form
      */
     private function display_add_job_form() {
-        if (!$this->user_can_add_jobs()) {
-            wp_die(__('You do not have permission to add jobs.', 'sleeve-ke'));
-        }
-
-        $this->display_job_form();
+        $form_handler = new Sleeve_KE_Job_Form_Handler();
+        $form_handler->display_job_form();
     }
 
     /**
-     * Display edit job form.
+     * Display the edit job form
      */
     private function display_edit_job_form($job_id) {
         $job = $this->get_job_by_id($job_id);
-        
         if (!$job) {
             wp_die(__('Job not found.', 'sleeve-ke'));
         }
-
+        
         if (!$this->user_can_edit_job($job)) {
             wp_die(__('You do not have permission to edit this job.', 'sleeve-ke'));
         }
-
-        $this->display_job_form($job);
+        
+        $form_handler = new Sleeve_KE_Job_Form_Handler();
+        $form_handler->display_job_form($job);
     }
 
     /**
-     * Display job form (add/edit).
+     * Display job view page
      */
-    private function display_job_form($job = null) {
-        $is_edit = !empty($job);
-        $form_title = $is_edit ? __('Edit Job', 'sleeve-ke') : __('Add New Job', 'sleeve-ke');
-        $submit_text = $is_edit ? __('Update Job', 'sleeve-ke') : __('Add Job', 'sleeve-ke');
-        
-        // Get submitted values from transient (if form had errors)
-        $submitted_values = get_transient('sleeve_ke_job_form_values');
-        
-        // Default values
-        $defaults = array(
-            'id' => 0,
-            'title' => '',
-            'sector' => '',
-            'description' => '',
-            'requirements' => '',
-            'company' => '',
-            'employer_type' => 'organization',
-            'location' => '',
-            'job_type' => 'full-time',
-            'experience_level' => '',
-            'salary_min' => '',
-            'salary_max' => '',
-            'currency' => 'KES',
-            'status' => 'draft',
-            'expires_at' => '',
-            'remote_work' => 'no',
-            'benefits' => ''
-        );
-
-        // Use submitted values if available, otherwise use job data or defaults
-        if ($submitted_values && is_array($submitted_values)) {
-            $job_data = array_merge($defaults, $submitted_values);
-            delete_transient('sleeve_ke_job_form_values');
-        } else {
-            $job_data = $is_edit ? array_merge($defaults, $job) : $defaults;
-        }
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html($form_title); ?></h1>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sleeve-ke-jobs')); ?>" class="button">
-                <?php esc_html_e('← Back to Jobs', 'sleeve-ke'); ?>
-            </a>
-            
-            <form method="post" action="" class="sleeve-ke-job-form" id="job-form">
-                <?php wp_nonce_field('sleeve_job_form', 'job_form_nonce'); ?>
-                <input type="hidden" name="job_action" value="<?php echo $is_edit ? 'update' : 'create'; ?>" />
-                <input type="hidden" name="job_id" value="<?php echo esc_attr($job_data['id']); ?>" />
-                
-                <div class="sleeve-ke-form-container">
-                    <div class="form-section">
-                        <h2><?php esc_html_e('Job Information', 'sleeve-ke'); ?></h2>
-                        
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="job_title"><?php esc_html_e('Job Title', 'sleeve-ke'); ?> <span class="required">*</span></label>
-                                </th>
-                                <td>
-                                    <input type="text" id="job_title" name="job_title" value="<?php echo esc_attr($job_data['title']); ?>" class="regular-text" required />
-                                    <p class="description"><?php esc_html_e('Include sector in title (e.g., "Senior Developer - Technology Sector")', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="sector"><?php esc_html_e('Sector', 'sleeve-ke'); ?> <span class="required">*</span></label>
-                                </th>
-                                <td>
-                                    <select id="sector" name="sector" required>
-                                        <option value=""><?php esc_html_e('Select Sector', 'sleeve-ke'); ?></option>
-                                        <?php
-                                        $sectors = $this->get_sectors();
-                                        foreach ($sectors as $sector_key => $sector_label) :
-                                        ?>
-                                            <option value="<?php echo esc_attr($sector_key); ?>" <?php selected($job_data['sector'], $sector_key); ?>>
-                                                <?php echo esc_html($sector_label); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="company"><?php esc_html_e('Employer Name', 'sleeve-ke'); ?> <span class="required">*</span></label>
-                                </th>
-                                <td>
-                                    <input type="text" id="company" name="company" value="<?php echo esc_attr($job_data['company']); ?>" class="regular-text" required />
-                                    <p class="description"><?php esc_html_e('Organization name or Individual name (e.g., "Tech Corp" or "Dr. John Doe")', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="employer_type"><?php esc_html_e('Employer Type', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="employer_type" name="employer_type">
-                                        <option value="organization" <?php selected($job_data['employer_type'], 'organization'); ?>><?php esc_html_e('Organization/Company', 'sleeve-ke'); ?></option>
-                                        <option value="individual" <?php selected($job_data['employer_type'], 'individual'); ?>><?php esc_html_e('Individual', 'sleeve-ke'); ?></option>
-                                    </select>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="location"><?php esc_html_e('Location', 'sleeve-ke'); ?> <span class="required">*</span></label>
-                                </th>
-                                <td>
-                                    <input type="text" id="location" name="location" value="<?php echo esc_attr($job_data['location']); ?>" class="regular-text" required />
-                                    <p class="description"><?php esc_html_e('e.g., Nairobi, Kenya or Remote', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="job_type"><?php esc_html_e('Job Type', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="job_type" name="job_type">
-                                        <?php
-                                        $job_types = $this->get_job_types();
-                                        foreach ($job_types as $type_key => $type_label) :
-                                        ?>
-                                            <option value="<?php echo esc_attr($type_key); ?>" <?php selected($job_data['job_type'], $type_key); ?>>
-                                                <?php echo esc_html($type_label); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="experience_level"><?php esc_html_e('Experience Level', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="experience_level" name="experience_level">
-                                        <option value=""><?php esc_html_e('Select Experience Level', 'sleeve-ke'); ?></option>
-                                        <?php
-                                        $experience_levels = array(
-                                            'entry' => __('Entry Level (0-2 years)', 'sleeve-ke'),
-                                            'mid' => __('Mid Level (3-5 years)', 'sleeve-ke'),
-                                            'senior' => __('Senior Level (6-10 years)', 'sleeve-ke'),
-                                            'executive' => __('Executive Level (10+ years)', 'sleeve-ke')
-                                        );
-                                        foreach ($experience_levels as $level_key => $level_label) :
-                                        ?>
-                                            <option value="<?php echo esc_attr($level_key); ?>" <?php selected($job_data['experience_level'], $level_key); ?>>
-                                                <?php echo esc_html($level_label); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="remote_work"><?php esc_html_e('Remote Work', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="remote_work" name="remote_work">
-                                        <option value="no" <?php selected($job_data['remote_work'], 'no'); ?>><?php esc_html_e('No Remote Work', 'sleeve-ke'); ?></option>
-                                        <option value="hybrid" <?php selected($job_data['remote_work'], 'hybrid'); ?>><?php esc_html_e('Hybrid', 'sleeve-ke'); ?></option>
-                                        <option value="full" <?php selected($job_data['remote_work'], 'full'); ?>><?php esc_html_e('Fully Remote', 'sleeve-ke'); ?></option>
-                                    </select>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <div class="form-section">
-                        <h2><?php esc_html_e('Salary Information', 'sleeve-ke'); ?></h2>
-                        
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="salary_min"><?php esc_html_e('Minimum Salary', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <input type="number" id="salary_min" name="salary_min" value="<?php echo esc_attr($job_data['salary_min']); ?>" class="regular-text" min="0" step="1000" />
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="salary_max"><?php esc_html_e('Maximum Salary', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <input type="number" id="salary_max" name="salary_max" value="<?php echo esc_attr($job_data['salary_max']); ?>" class="regular-text" min="0" step="1000" />
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="currency"><?php esc_html_e('Currency', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="currency" name="currency">
-                                        <option value="KES" <?php selected($job_data['currency'], 'KES'); ?>>KES (Kenyan Shilling)</option>
-                                        <option value="USD" <?php selected($job_data['currency'], 'USD'); ?>>USD (US Dollar)</option>
-                                        <option value="EUR" <?php selected($job_data['currency'], 'EUR'); ?>>EUR (Euro)</option>
-                                        <option value="UGX" <?php selected($job_data['currency'], 'UGX'); ?>>UGX (Ugandan Shilling)</option>
-                                        <option value="TZS" <?php selected($job_data['currency'], 'TZS'); ?>>TZS (Tanzanian Shilling)</option>
-                                    </select>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <div class="form-section">
-                        <h2><?php esc_html_e('Job Description', 'sleeve-ke'); ?></h2>
-                        
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="description"><?php esc_html_e('Description', 'sleeve-ke'); ?> <span class="required">*</span></label>
-                                </th>
-                                <td>
-                                    <textarea id="description" name="description" rows="8" class="large-text" required><?php echo esc_textarea($job_data['description']); ?></textarea>
-                                    <p class="description"><?php esc_html_e('Detailed description of the job role and responsibilities.', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="requirements"><?php esc_html_e('Requirements', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <textarea id="requirements" name="requirements" rows="6" class="large-text"><?php echo esc_textarea($job_data['requirements']); ?></textarea>
-                                    <p class="description"><?php esc_html_e('Skills, qualifications, and experience required.', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="benefits"><?php esc_html_e('Benefits', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <textarea id="benefits" name="benefits" rows="4" class="large-text"><?php echo esc_textarea($job_data['benefits']); ?></textarea>
-                                    <p class="description"><?php esc_html_e('Benefits and perks offered with this position.', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <div class="form-section">
-                        <h2><?php esc_html_e('Publication Settings', 'sleeve-ke'); ?></h2>
-                        
-                        <table class="form-table">
-                            <tr>
-                                <th scope="row">
-                                    <label for="status"><?php esc_html_e('Status', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <select id="status" name="status">
-                                        <?php
-                                        $statuses = $this->get_status_options();
-                                        foreach ($statuses as $status_key => $status_label) :
-                                        ?>
-                                            <option value="<?php echo esc_attr($status_key); ?>" <?php selected($job_data['status'], $status_key); ?>>
-                                                <?php echo esc_html($status_label); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row">
-                                    <label for="expires_at"><?php esc_html_e('Expires On', 'sleeve-ke'); ?></label>
-                                </th>
-                                <td>
-                                    <input type="date" id="expires_at" name="expires_at" value="<?php echo esc_attr($job_data['expires_at']); ?>" min="<?php echo date('Y-m-d'); ?>" />
-                                    <p class="description"><?php esc_html_e('Optional: Set when this job posting should expire.', 'sleeve-ke'); ?></p>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                
-                <p class="submit">
-                    <?php submit_button($submit_text, 'primary', 'submit_job', false, array('id' => 'submit-job-btn')); ?>
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=sleeve-ke-jobs')); ?>" class="button">
-                        <?php esc_html_e('Cancel', 'sleeve-ke'); ?>
-                    </a>
-                    <span id="form-validation-errors" style="color: #dc3232; margin-left: 15px; display: none;"></span>
-                </p>
-            </form>
-        </div>
-        
-        <script>
-        jQuery(document).ready(function($) {
-            // Form validation
-            $('#job-form').on('submit', function(e) {
-                var isValid = true;
-                var errors = [];
-                
-                // Clear previous errors
-                $('.form-error').remove();
-                $('#form-validation-errors').hide().empty();
-                
-                // Check required fields
-                var requiredFields = [
-                    { id: '#job_title', name: '<?php esc_html_e('Job Title', 'sleeve-ke'); ?>' },
-                    { id: '#sector', name: '<?php esc_html_e('Sector', 'sleeve-ke'); ?>' },
-                    { id: '#company', name: '<?php esc_html_e('Employer Name', 'sleeve-ke'); ?>' },
-                    { id: '#location', name: '<?php esc_html_e('Location', 'sleeve-ke'); ?>' },
-                    { id: '#description', name: '<?php esc_html_e('Description', 'sleeve-ke'); ?>' }
-                ];
-                
-                requiredFields.forEach(function(field) {
-                    var $field = $(field.id);
-                    if (!$field.val().trim()) {
-                        isValid = false;
-                        errors.push('<?php esc_html_e('Please fill in', 'sleeve-ke'); ?>: ' + field.name);
-                        $field.after('<span class="form-error" style="color: #dc3232; display: block; margin-top: 5px;"><?php esc_html_e('This field is required', 'sleeve-ke'); ?></span>');
-                    }
-                });
-                
-                // Check salary range
-                var salaryMin = $('#salary_min').val();
-                var salaryMax = $('#salary_max').val();
-                if (salaryMin && salaryMax && parseFloat(salaryMin) > parseFloat(salaryMax)) {
-                    isValid = false;
-                    errors.push('<?php esc_html_e('Minimum salary cannot be greater than maximum salary', 'sleeve-ke'); ?>');
-                    $('#salary_min, #salary_max').after('<span class="form-error" style="color: #dc3232; display: block; margin-top: 5px;"><?php esc_html_e('Minimum salary cannot be greater than maximum salary', 'sleeve-ke'); ?></span>');
-                }
-                
-                if (!isValid) {
-                    e.preventDefault();
-                    $('#form-validation-errors').html('<strong><?php esc_html_e('Please fix the following errors:', 'sleeve-ke'); ?></strong><br>' + errors.join('<br>')).show();
-                    
-                    // Scroll to first error
-                    $('html, body').animate({
-                        scrollTop: $('.form-error').first().offset().top - 100
-                    }, 500);
-                } else {
-                    // Show loading state
-                    $('#submit-job-btn').prop('disabled', true).val('<?php esc_html_e('Processing...', 'sleeve-ke'); ?>');
-                }
-            });
-            
-            // Real-time validation
-            $('input[required], select[required], textarea[required]').on('blur', function() {
-                var $field = $(this);
-                var $error = $field.next('.form-error');
-                
-                if (!$field.val().trim()) {
-                    if ($error.length === 0) {
-                        $field.after('<span class="form-error" style="color: #dc3232; display: block; margin-top: 5px;"><?php esc_html_e('This field is required', 'sleeve-ke'); ?></span>');
-                    }
-                } else {
-                    $error.remove();
-                }
-            });
-        });
-        </script>
-        
-        <style>
-        .sleeve-ke-job-form .form-section {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
+    private function display_job_view($job_id) {
+        $job = $this->get_job_by_id($job_id);
+        if (!$job) {
+            wp_die(__('Job not found.', 'sleeve-ke'));
         }
         
-        .sleeve-ke-job-form .form-section h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e1e1e1;
+        if (!$this->user_can_view_job($job)) {
+            wp_die(__('You do not have permission to view this job.', 'sleeve-ke'));
         }
         
-        .sleeve-ke-job-form .required {
-            color: #d63638;
-        }
-        
-        .form-error {
-            font-size: 12px;
-            font-style: italic;
-        }
-        </style>
-        <?php
+        $view_handler = new Sleeve_KE_Job_View_Handler();
+        $view_handler->display_job_view($job);
     }
 
-    // ... (Keep all the other existing methods: get_status_options, get_job_types, get_sectors, get_jobs_data, get_job_stats, etc.)
+    // ========== BUSINESS LOGIC METHODS ==========
 
     /**
      * Handle job actions
@@ -918,88 +466,51 @@ class Sleeve_KE_Jobs {
      * Create new job
      */
     private function create_job() {
+        // Validate required fields
+        $validation_errors = $this->validate_job_form_data();
+        
+        if (!empty($validation_errors)) {
+            set_transient('sleeve_ke_job_form_errors', $validation_errors, 45);
+            set_transient('sleeve_ke_job_form_data', $_POST, 45);
+            wp_redirect(add_query_arg('error', 'validation_failed', admin_url('admin.php?page=sleeve-ke-jobs&action=add')));
+            exit;
+        }
+        
+        // Check permissions
         if (!$this->user_can_add_jobs()) {
             wp_redirect(add_query_arg('error', 'permission_denied', admin_url('admin.php?page=sleeve-ke-jobs')));
             exit;
         }
-
-        // Collect and sanitize input
-        $title = isset($_POST['job_title']) ? sanitize_text_field(wp_unslash($_POST['job_title'])) : '';
-        $sector = isset($_POST['sector']) ? sanitize_text_field(wp_unslash($_POST['sector'])) : '';
-        $company = isset($_POST['company']) ? sanitize_text_field(wp_unslash($_POST['company'])) : '';
-        $employer_type = isset($_POST['employer_type']) ? sanitize_text_field(wp_unslash($_POST['employer_type'])) : 'organization';
-        $location = isset($_POST['location']) ? sanitize_text_field(wp_unslash($_POST['location'])) : '';
-        $job_type = isset($_POST['job_type']) ? sanitize_text_field(wp_unslash($_POST['job_type'])) : '';
-        $experience_level = isset($_POST['experience_level']) ? sanitize_text_field(wp_unslash($_POST['experience_level'])) : '';
-        $salary_min = isset($_POST['salary_min']) ? floatval(wp_unslash($_POST['salary_min'])) : '';
-        $salary_max = isset($_POST['salary_max']) ? floatval(wp_unslash($_POST['salary_max'])) : '';
-        $currency = isset($_POST['currency']) ? sanitize_text_field(wp_unslash($_POST['currency'])) : 'KES';
-        $description = isset($_POST['description']) ? wp_kses_post(wp_unslash($_POST['description'])) : '';
-        $requirements = isset($_POST['requirements']) ? wp_kses_post(wp_unslash($_POST['requirements'])) : '';
-        $benefits = isset($_POST['benefits']) ? wp_kses_post(wp_unslash($_POST['benefits'])) : '';
-        $status = isset($_POST['status']) ? sanitize_text_field(wp_unslash($_POST['status'])) : 'draft';
-        $expires_at = isset($_POST['expires_at']) ? sanitize_text_field(wp_unslash($_POST['expires_at'])) : '';
-        $remote_work = isset($_POST['remote_work']) ? sanitize_text_field(wp_unslash($_POST['remote_work'])) : 'no';
-
-        // Validate required fields
-        $errors = array();
-        if (empty($title)) {
-            $errors[] = __('Job title is required.', 'sleeve-ke');
-        }
-        if (empty($sector)) {
-            $errors[] = __('Sector is required.', 'sleeve-ke');
-        }
-        if (empty($company)) {
-            $errors[] = __('Employer name is required.', 'sleeve-ke');
-        }
-        if (empty($location)) {
-            $errors[] = __('Location is required.', 'sleeve-ke');
-        }
-        if (empty($description)) {
-            $errors[] = __('Job description is required.', 'sleeve-ke');
-        }
-
-        // Validate salary range
-        if ($salary_min && $salary_max && $salary_min > $salary_max) {
-            $errors[] = __('Minimum salary cannot be greater than maximum salary.', 'sleeve-ke');
-        }
-
-        // Preserve submitted values to refill the form on error
-        $submitted = array(
-            'title' => $title,
-            'sector' => $sector,
-            'company' => $company,
-            'employer_type' => $employer_type,
-            'location' => $location,
-            'job_type' => $job_type,
-            'experience_level' => $experience_level,
-            'salary_min' => $salary_min,
-            'salary_max' => $salary_max,
-            'currency' => $currency,
-            'description' => $description,
-            'requirements' => $requirements,
-            'benefits' => $benefits,
-            'status' => $status,
-            'expires_at' => $expires_at,
-            'remote_work' => $remote_work
+        
+        // Prepare job data
+        $job_data = array(
+            'title' => sanitize_text_field($_POST['job_title']),
+            'description' => wp_kses_post($_POST['job_description']),
+            'requirements' => wp_kses_post($_POST['job_requirements']),
+            'benefits' => wp_kses_post($_POST['job_benefits']),
+            'company' => sanitize_text_field($_POST['company']),
+            'sector' => sanitize_text_field($_POST['sector']),
+            'location' => sanitize_text_field($_POST['location']),
+            'job_type' => sanitize_text_field($_POST['job_type']),
+            'experience_level' => sanitize_text_field($_POST['experience_level']),
+            'remote_work' => sanitize_text_field($_POST['remote_work']),
+            'salary_min' => !empty($_POST['salary_min']) ? intval($_POST['salary_min']) : null,
+            'salary_max' => !empty($_POST['salary_max']) ? intval($_POST['salary_max']) : null,
+            'currency' => sanitize_text_field($_POST['currency']),
+            'status' => sanitize_text_field($_POST['job_status']),
+            'expires_at' => !empty($_POST['expires_at']) ? sanitize_text_field($_POST['expires_at']) : date('Y-m-d', strtotime('+30 days')),
+            'posted_date' => date('Y-m-d'),
+            'employer_id' => get_current_user_id(),
+            'employer_type' => $this->is_employer() ? 'individual' : 'organization',
+            'applications_count' => 0
         );
-
-        if (!empty($errors)) {
-            // Store errors and submitted values in transient for display after redirect
-            set_transient('sleeve_ke_job_form_errors', $errors, 30);
-            set_transient('sleeve_ke_job_form_values', $submitted, 30);
-
-            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-jobs&action=add'));
-            exit;
-        }
-
+        
         // In a real implementation, you would save to database here
         // For now, we'll simulate success
         
-        // Log the action for debugging
-        error_log('Sleeve KE: Job created - Title: ' . $title . ', Company: ' . $company . ', Sector: ' . $sector);
-
-        // Redirect with success message
+        // Clear any stored form data
+        delete_transient('sleeve_ke_job_form_data');
+        
         wp_redirect(add_query_arg('success', 'job_created', admin_url('admin.php?page=sleeve-ke-jobs')));
         exit;
     }
@@ -1015,59 +526,152 @@ class Sleeve_KE_Jobs {
             wp_redirect(add_query_arg('error', 'job_not_found', admin_url('admin.php?page=sleeve-ke-jobs')));
             exit;
         }
-
+        
+        // Check permissions
         if (!$this->user_can_edit_job($job)) {
             wp_redirect(add_query_arg('error', 'permission_denied', admin_url('admin.php?page=sleeve-ke-jobs')));
             exit;
         }
-
-        // Collect and sanitize input (same as create_job)
-        $title = isset($_POST['job_title']) ? sanitize_text_field(wp_unslash($_POST['job_title'])) : '';
-        $sector = isset($_POST['sector']) ? sanitize_text_field(wp_unslash($_POST['sector'])) : '';
-        // ... collect all other fields
-
-        // Validate required fields (same as create_job)
-        $errors = array();
-        if (empty($title)) $errors[] = __('Job title is required.', 'sleeve-ke');
-        // ... other validations
-
-        if (!empty($errors)) {
-            set_transient('sleeve_ke_job_form_errors', $errors, 30);
-            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-jobs&action=edit&id=' . $job_id));
+        
+        // Validate required fields
+        $validation_errors = $this->validate_job_form_data();
+        
+        if (!empty($validation_errors)) {
+            set_transient('sleeve_ke_job_form_errors', $validation_errors, 45);
+            set_transient('sleeve_ke_job_form_data', $_POST, 45);
+            wp_redirect(add_query_arg('error', 'validation_failed', admin_url('admin.php?page=sleeve-ke-jobs&action=edit&id=' . $job_id)));
             exit;
         }
-
-        // In a real implementation, you would update the database here
-        error_log('Sleeve KE: Job updated - ID: ' . $job_id . ', Title: ' . $title);
-
-        // Redirect with success message
+        
+        // Prepare updated job data
+        $job_data = array(
+            'title' => sanitize_text_field($_POST['job_title']),
+            'description' => wp_kses_post($_POST['job_description']),
+            'requirements' => wp_kses_post($_POST['job_requirements']),
+            'benefits' => wp_kses_post($_POST['job_benefits']),
+            'company' => sanitize_text_field($_POST['company']),
+            'sector' => sanitize_text_field($_POST['sector']),
+            'location' => sanitize_text_field($_POST['location']),
+            'job_type' => sanitize_text_field($_POST['job_type']),
+            'experience_level' => sanitize_text_field($_POST['experience_level']),
+            'remote_work' => sanitize_text_field($_POST['remote_work']),
+            'salary_min' => !empty($_POST['salary_min']) ? intval($_POST['salary_min']) : null,
+            'salary_max' => !empty($_POST['salary_max']) ? intval($_POST['salary_max']) : null,
+            'currency' => sanitize_text_field($_POST['currency']),
+            'status' => sanitize_text_field($_POST['job_status']),
+            'expires_at' => !empty($_POST['expires_at']) ? sanitize_text_field($_POST['expires_at']) : $job['expires_at']
+        );
+        
+        // In a real implementation, you would update in database here
+        // For now, we'll simulate success
+        
+        // Clear any stored form data
+        delete_transient('sleeve_ke_job_form_data');
+        
         wp_redirect(add_query_arg('success', 'job_updated', admin_url('admin.php?page=sleeve-ke-jobs')));
         exit;
+    }
+
+    /**
+     * Validate job form data
+     */
+    private function validate_job_form_data() {
+        $errors = array();
+        
+        $required_fields = array(
+            'job_title' => __('Job Title', 'sleeve-ke'),
+            'job_description' => __('Job Description', 'sleeve-ke'),
+            'job_requirements' => __('Requirements', 'sleeve-ke'),
+            'company' => __('Company', 'sleeve-ke'),
+            'sector' => __('Sector', 'sleeve-ke'),
+            'location' => __('Location', 'sleeve-ke'),
+            'job_type' => __('Job Type', 'sleeve-ke'),
+            'experience_level' => __('Experience Level', 'sleeve-ke'),
+            'job_status' => __('Status', 'sleeve-ke')
+        );
+        
+        foreach ($required_fields as $field => $label) {
+            if (empty($_POST[$field])) {
+                $errors[] = sprintf(__('%s is required.', 'sleeve-ke'), $label);
+            }
+        }
+        
+        // Validate salary range if provided
+        if (!empty($_POST['salary_min']) && !empty($_POST['salary_max'])) {
+            $min = intval($_POST['salary_min']);
+            $max = intval($_POST['salary_max']);
+            
+            if ($min > $max) {
+                $errors[] = __('Minimum salary cannot be greater than maximum salary.', 'sleeve-ke');
+            }
+            
+            if ($min < 0 || $max < 0) {
+                $errors[] = __('Salary values cannot be negative.', 'sleeve-ke');
+            }
+        }
+        
+        // Validate expiration date
+        if (!empty($_POST['expires_at'])) {
+            $expires = strtotime($_POST['expires_at']);
+            $today = strtotime(date('Y-m-d'));
+            
+            if ($expires < $today) {
+                $errors[] = __('Expiration date cannot be in the past.', 'sleeve-ke');
+            }
+        }
+        
+        return $errors;
     }
 
     /**
      * Handle bulk actions
      */
     private function handle_bulk_actions() {
-        if (!$this->user_can_manage_all_jobs()) {
-            wp_redirect(add_query_arg('error', 'permission_denied', admin_url('admin.php?page=sleeve-ke-jobs')));
-            exit;
-        }
-
-        if (!isset($_POST['bulk_action']) || !isset($_POST['job_ids'])) {
+        if (!isset($_POST['bulk_action']) || empty($_POST['bulk_action'])) {
             return;
         }
-
-        $action = sanitize_text_field($_POST['bulk_action']);
+        
+        if (!isset($_POST['job_ids']) || empty($_POST['job_ids'])) {
+            wp_redirect(add_query_arg('error', 'no_jobs_selected', admin_url('admin.php?page=sleeve-ke-jobs')));
+            exit;
+        }
+        
+        $bulk_action = sanitize_text_field($_POST['bulk_action']);
         $job_ids = array_map('intval', $_POST['job_ids']);
+        $processed = 0;
         
-        // Log bulk action for debugging
-        error_log('Sleeve KE: Bulk action - ' . $action . ' on jobs: ' . implode(', ', $job_ids));
-
-        // In a real implementation, you would update the database here
+        foreach ($job_ids as $job_id) {
+            $job = $this->get_job_by_id($job_id);
+            
+            if (!$job || !$this->user_can_edit_job($job)) {
+                continue;
+            }
+            
+            switch ($bulk_action) {
+                case 'publish':
+                    // Update job status to published
+                    $processed++;
+                    break;
+                case 'draft':
+                    // Update job status to draft
+                    $processed++;
+                    break;
+                case 'archive':
+                    // Update job status to archived
+                    $processed++;
+                    break;
+                case 'delete':
+                    // Delete job
+                    $processed++;
+                    break;
+            }
+        }
         
-        // Redirect with success message
-        wp_redirect(add_query_arg('success', 'bulk_action_completed', admin_url('admin.php?page=sleeve-ke-jobs')));
+        if ($processed > 0) {
+            wp_redirect(add_query_arg('success', 'bulk_action_completed', admin_url('admin.php?page=sleeve-ke-jobs')));
+        } else {
+            wp_redirect(add_query_arg('error', 'no_actions_processed', admin_url('admin.php?page=sleeve-ke-jobs')));
+        }
         exit;
     }
 
@@ -1095,11 +699,6 @@ class Sleeve_KE_Jobs {
             wp_send_json_error(array('message' => __('Invalid status.', 'sleeve-ke')));
         }
         
-        // Log status change for debugging
-        error_log('Sleeve KE: Job status updated - Job ID: ' . $job_id . ', New Status: ' . $status);
-        
-        // In a real implementation, you would update the database here
-        
         $statuses = $this->get_status_options();
         $new_status_label = isset($statuses[$status]) ? $statuses[$status] : $status;
         
@@ -1111,139 +710,275 @@ class Sleeve_KE_Jobs {
         ));
     }
 
-    // ... (Keep all the other existing methods unchanged)
+    /**
+     * Get status options for jobs
+     */
+    public function get_status_options() {
+        return array(
+            'draft' => __('Draft', 'sleeve-ke'),
+            'published' => __('Published', 'sleeve-ke'),
+            'archived' => __('Archived', 'sleeve-ke'),
+            'expired' => __('Expired', 'sleeve-ke')
+        );
+    }
 
     /**
-     * Get jobs data from WP posts (used by admin listing).
-     * Applies simple GET-based filters: search, status, job_type, sector.
-     * Returns array of associative job data.
+     * Get job types
+     */
+    public function get_job_types() {
+        return array(
+            'full-time' => __('Full-Time', 'sleeve-ke'),
+            'part-time' => __('Part-Time', 'sleeve-ke'),
+            'contract' => __('Contract', 'sleeve-ke'),
+            'temporary' => __('Temporary', 'sleeve-ke'),
+            'internship' => __('Internship', 'sleeve-ke'),
+            'freelance' => __('Freelance', 'sleeve-ke')
+        );
+    }
+
+    /**
+     * Get sectors
+     */
+    public function get_sectors() {
+        return array(
+            'technology' => __('Technology & IT', 'sleeve-ke'),
+            'healthcare' => __('Healthcare & Medical', 'sleeve-ke'),
+            'finance' => __('Finance & Banking', 'sleeve-ke'),
+            'education' => __('Education & Training', 'sleeve-ke'),
+            'manufacturing' => __('Manufacturing & Production', 'sleeve-ke'),
+            'retail' => __('Retail & Sales', 'sleeve-ke'),
+            'hospitality' => __('Hospitality & Tourism', 'sleeve-ke'),
+            'agriculture' => __('Agriculture & Farming', 'sleeve-ke'),
+            'construction' => __('Construction & Real Estate', 'sleeve-ke'),
+            'telecommunications' => __('Telecommunications & Media', 'sleeve-ke'),
+            'legal' => __('Legal & Professional Services', 'sleeve-ke'),
+            'marketing' => __('Marketing & Advertising', 'sleeve-ke'),
+            'business' => __('Business & Consulting', 'sleeve-ke'),
+            'nonprofit' => __('Non-Profit & NGO', 'sleeve-ke'),
+            'government' => __('Government & Public Sector', 'sleeve-ke'),
+            'transport' => __('Transportation & Logistics', 'sleeve-ke'),
+            'energy' => __('Energy & Environment', 'sleeve-ke'),
+            'arts' => __('Arts & Creative', 'sleeve-ke'),
+            'sports' => __('Sports & Recreation', 'sleeve-ke'),
+            'other' => __('Other', 'sleeve-ke')
+        );
+    }
+
+    /**
+     * Get jobs data
      */
     public function get_jobs_data() {
+        // Apply filters if any
         $search = isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '';
         $status_filter = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
         $type_filter = isset($_GET['job_type']) ? sanitize_text_field($_GET['job_type']) : '';
         $sector_filter = isset($_GET['sector']) ? sanitize_text_field($_GET['sector']) : '';
 
-        $args = array(
-            'post_type' => 'job',
-            'post_status' => array( 'publish', 'draft', 'private' ),
-            'posts_per_page' => -1,
+        // Mock data - in real implementation, this would fetch from database
+        $all_jobs = array(
+            array(
+                'id' => 1,
+                'title' => 'Senior PHP Developer - Technology Sector',
+                'sector' => 'technology',
+                'description' => 'We are seeking a highly skilled Senior PHP Developer to join our dynamic technology team.',
+                'company' => 'Tech Solutions Ltd',
+                'employer_type' => 'organization',
+                'location' => 'Nairobi, Kenya',
+                'job_type' => 'Full-Time',
+                'experience_level' => 'senior',
+                'requirements' => 'Bachelor\'s degree in Computer Science, 5+ years PHP experience, Laravel framework expertise.',
+                'benefits' => 'Health insurance, Flexible working hours, Remote work options',
+                'salary_min' => 150000,
+                'salary_max' => 300000,
+                'currency' => 'KES',
+                'remote_work' => 'hybrid',
+                'status' => 'published',
+                'applications_count' => 24,
+                'posted_date' => '2025-10-10',
+                'expires_at' => '2025-11-10',
+                'employer_id' => 1
+            ),
+            array(
+                'id' => 2,
+                'title' => 'Frontend Developer - Creative Technology',
+                'sector' => 'technology',
+                'description' => 'Join our creative team as a Frontend Developer where you\'ll build beautiful, responsive user interfaces.',
+                'company' => 'Creative Agency',
+                'employer_type' => 'organization',
+                'location' => 'Remote',
+                'job_type' => 'Full-Time',
+                'experience_level' => 'mid',
+                'requirements' => 'Strong JavaScript, HTML5, CSS3 skills, React or Vue.js experience.',
+                'benefits' => 'Fully remote work, Creative freedom, Latest equipment',
+                'salary_min' => 120000,
+                'salary_max' => 250000,
+                'currency' => 'KES',
+                'remote_work' => 'full',
+                'status' => 'published',
+                'applications_count' => 18,
+                'posted_date' => '2025-10-08',
+                'expires_at' => '2025-11-08',
+                'employer_id' => 2
+            ),
+            array(
+                'id' => 3,
+                'title' => 'Marketing Intern - Digital Marketing',
+                'sector' => 'marketing',
+                'description' => 'Great opportunity for a Marketing student or recent graduate to gain hands-on experience.',
+                'company' => 'StartUp Inc',
+                'employer_type' => 'organization',
+                'location' => 'Dar es Salaam, Tanzania',
+                'job_type' => 'Internship',
+                'experience_level' => 'entry',
+                'requirements' => 'Currently studying Marketing/Business or recent graduate, Social media knowledge.',
+                'benefits' => 'Mentorship program, Certificate of completion, Networking opportunities',
+                'salary_min' => 50000,
+                'salary_max' => 80000,
+                'currency' => 'TZS',
+                'remote_work' => 'hybrid',
+                'status' => 'draft',
+                'applications_count' => 0,
+                'posted_date' => '2025-10-15',
+                'expires_at' => '2025-11-30',
+                'employer_id' => 1
+            )
         );
 
-        // Map our admin status filter to WP post_status where possible
-        if ( $status_filter === 'published' ) {
-            $args['post_status'] = 'publish';
-        } elseif ( $status_filter === 'draft' ) {
-            $args['post_status'] = 'draft';
+        // Filter by current user if they're an employer
+        if ($this->is_employer()) {
+            $current_user_id = get_current_user_id();
+            $all_jobs = array_filter($all_jobs, function($job) use ($current_user_id) {
+                return $job['employer_id'] === $current_user_id;
+            });
         }
 
-        // Employer users should only see their own jobs
-        if ( $this->is_employer() ) {
-            $args['author'] = get_current_user_id();
+        // Apply filters
+        $filtered_jobs = $all_jobs;
+
+        if (!empty($search)) {
+            $filtered_jobs = array_filter($filtered_jobs, function($job) use ($search) {
+                return stripos($job['title'], $search) !== false || 
+                       stripos($job['company'], $search) !== false;
+            });
         }
 
-        if ( ! empty( $search ) ) {
-            $args['s'] = $search;
+        if (!empty($status_filter)) {
+            $filtered_jobs = array_filter($filtered_jobs, function($job) use ($status_filter) {
+                return $job['status'] === $status_filter;
+            });
         }
 
-        // Meta queries for job_type and sector
-        $meta_query = array();
-        if ( ! empty( $type_filter ) ) {
-            $meta_query[] = array(
-                'key' => 'job_type',
-                'value' => $type_filter,
-                'compare' => '='
-            );
-        }
-        if ( ! empty( $sector_filter ) ) {
-            $meta_query[] = array(
-                'key' => 'sector',
-                'value' => $sector_filter,
-                'compare' => '='
-            );
-        }
-        if ( ! empty( $meta_query ) ) {
-            $args['meta_query'] = $meta_query;
+        if (!empty($type_filter)) {
+            $filtered_jobs = array_filter($filtered_jobs, function($job) use ($type_filter) {
+                return strtolower(str_replace('-', '-', $job['job_type'])) === $type_filter;
+            });
         }
 
-        $query = new WP_Query( $args );
-        $results = array();
-        if ( $query->have_posts() ) {
-            foreach ( $query->posts as $post ) {
-                $job = array();
-                $job['id'] = $post->ID;
-                $job['title'] = get_the_title( $post );
-                $job['sector'] = get_post_meta( $post->ID, 'sector', true );
-                $job['description'] = $post->post_content;
-                $job['company'] = get_post_meta( $post->ID, 'company_name', true );
-                $job['employer_type'] = get_post_meta( $post->ID, 'employer_type', true );
-                $job['location'] = get_post_meta( $post->ID, 'job_location', true );
-                $job['job_type'] = get_post_meta( $post->ID, 'job_type', true );
-                $job['experience_level'] = get_post_meta( $post->ID, 'experience_level', true );
-                $job['requirements'] = get_post_meta( $post->ID, 'requirements', true );
-                $job['benefits'] = get_post_meta( $post->ID, 'benefits', true );
-                $job['salary_min'] = get_post_meta( $post->ID, 'salary_min', true );
-                $job['salary_max'] = get_post_meta( $post->ID, 'salary_max', true );
-                $job['currency'] = get_post_meta( $post->ID, 'currency', true );
-                $job['remote_work'] = get_post_meta( $post->ID, 'is_remote', true );
-                $job['status'] = ( $post->post_status === 'publish' ) ? 'published' : $post->post_status;
-                $job['applications_count'] = 0; // placeholder; integrate real counts if you have applications table
-                $job['posted_date'] = $post->post_date;
-                $job['expires_at'] = get_post_meta( $post->ID, 'expires_at', true );
-                $job['employer_id'] = $post->post_author;
-
-                $results[] = $job;
-            }
+        if (!empty($sector_filter)) {
+            $filtered_jobs = array_filter($filtered_jobs, function($job) use ($sector_filter) {
+                return $job['sector'] === $sector_filter;
+            });
         }
-        wp_reset_postdata();
 
-        return $results;
+        return $filtered_jobs;
     }
 
     /**
-     * Get single job by ID, returning the same structure as get_jobs_data() items.
+     * Get job statistics
      */
-    public function get_job_by_id( $job_id ) {
-        $post = get_post( intval( $job_id ) );
-        if ( ! $post || $post->post_type !== 'job' ) {
-            return null;
+    public function get_job_stats() {
+        $jobs = $this->get_jobs_data();
+        $statuses = $this->get_status_options();
+        
+        $stats = array();
+        $stats[] = array('count' => count($jobs), 'label' => __('Total Jobs', 'sleeve-ke'));
+        
+        foreach ($statuses as $status_key => $status_label) {
+            $count = count(array_filter($jobs, function($job) use ($status_key) {
+                return $job['status'] === $status_key;
+            }));
+            $stats[] = array('count' => $count, 'label' => $status_label);
         }
-
-        $job = array();
-        $job['id'] = $post->ID;
-        $job['title'] = get_the_title( $post );
-        $job['sector'] = get_post_meta( $post->ID, 'sector', true );
-        $job['description'] = $post->post_content;
-        $job['company'] = get_post_meta( $post->ID, 'company_name', true );
-        $job['employer_type'] = get_post_meta( $post->ID, 'employer_type', true );
-        $job['location'] = get_post_meta( $post->ID, 'job_location', true );
-        $job['job_type'] = get_post_meta( $post->ID, 'job_type', true );
-        $job['experience_level'] = get_post_meta( $post->ID, 'experience_level', true );
-        $job['requirements'] = get_post_meta( $post->ID, 'requirements', true );
-        $job['benefits'] = get_post_meta( $post->ID, 'benefits', true );
-        $job['salary_min'] = get_post_meta( $post->ID, 'salary_min', true );
-        $job['salary_max'] = get_post_meta( $post->ID, 'salary_max', true );
-        $job['currency'] = get_post_meta( $post->ID, 'currency', true );
-        $job['remote_work'] = get_post_meta( $post->ID, 'is_remote', true );
-        $job['status'] = ( $post->post_status === 'publish' ) ? 'published' : $post->post_status;
-        $job['applications_count'] = 0;
-        $job['posted_date'] = $post->post_date;
-        $job['expires_at'] = get_post_meta( $post->ID, 'expires_at', true );
-        $job['employer_id'] = $post->post_author;
-
-        return $job;
+        
+        return $stats;
     }
 
     /**
-     * Check if current user is an employer role.
-     *
-     * @return bool
+     * Check if current user can add jobs
+     */
+    public function user_can_add_jobs() {
+        return current_user_can('manage_options') || 
+               current_user_can('manage_jobs') || 
+               in_array('employer', wp_get_current_user()->roles) ||
+               in_array('sleve_admin', wp_get_current_user()->roles);
+    }
+
+    /**
+     * Check if current user can manage all jobs
+     */
+    public function user_can_manage_all_jobs() {
+        return current_user_can('manage_options') || 
+               in_array('sleve_admin', wp_get_current_user()->roles);
+    }
+
+    /**
+     * Check if current user can edit specific job
+     */
+    public function user_can_edit_job($job) {
+        // Admins and sleve_admins can edit all jobs
+        if ($this->user_can_manage_all_jobs()) {
+            return true;
+        }
+        
+        // Employers can only edit their own jobs
+        if ($this->is_employer()) {
+            return $job['employer_id'] === get_current_user_id();
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if current user can delete specific job
+     */
+    public function user_can_delete_job($job) {
+        return $this->user_can_edit_job($job);
+    }
+
+    /**
+     * Check if current user can view specific job
+     */
+    public function user_can_view_job($job) {
+        // Admins and sleve_admins can view all jobs
+        if ($this->user_can_manage_all_jobs()) {
+            return true;
+        }
+        
+        // Employers can only view their own jobs
+        if ($this->is_employer()) {
+            return $job['employer_id'] === get_current_user_id();
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if current user is an employer
      */
     private function is_employer() {
-        $user = wp_get_current_user();
-        if ( empty( $user ) ) {
-            return false;
+        return in_array('employer', wp_get_current_user()->roles);
+    }
+
+    /**
+     * Get job by ID
+     */
+    public function get_job_by_id($job_id) {
+        $jobs = $this->get_jobs_data();
+        foreach ($jobs as $job) {
+            if ($job['id'] == $job_id) {
+                return $job;
+            }
         }
-        return in_array( 'employer', (array) $user->roles, true );
+        return null;
     }
 }
