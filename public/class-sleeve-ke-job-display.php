@@ -13,6 +13,12 @@
  * Defines the plugin name, version, and handles job listing display with filters and search.
  */
 class Sleeve_KE_Job_Display {
+    /**
+     * Thumbnails helper instance.
+     *
+     * @var Sleeve_KE_Job_Thumbnails|null
+     */
+    protected $thumbnails = null;
 
     /**
      * Initialize the class and set its properties.
@@ -34,6 +40,12 @@ class Sleeve_KE_Job_Display {
         // Handle job save/unsave AJAX requests
         add_action( 'wp_ajax_sleeve_ke_save_job', array( $this, 'ajax_save_job' ) );
         add_action( 'wp_ajax_sleeve_ke_unsave_job', array( $this, 'ajax_unsave_job' ) );
+
+        // Load thumbnails helper
+        if ( file_exists( SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-thumbnails.php' ) ) {
+            require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-thumbnails.php';
+            $this->thumbnails = new Sleeve_KE_Job_Thumbnails();
+        }
     }
 
     /**
@@ -75,109 +87,7 @@ class Sleeve_KE_Job_Display {
 
         register_post_type( 'job', $args );
         
-        // Create sample jobs if none exist (only in development)
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            add_action( 'wp_loaded', array( $this, 'create_sample_jobs' ) );
-        }
-    }
-
-    /**
-     * Create sample jobs for testing (only runs once)
-     */
-    public function create_sample_jobs() {
-        // Check if sample jobs already exist
-        if ( get_option( 'sleeve_ke_sample_jobs_created', false ) ) {
-            return;
-        }
-
-        $job_types = array( 'full-time', 'part-time', 'contract', 'freelance' );
-        $experience_levels = array( 'entry', 'mid', 'senior', 'executive' );
-        $remote_options = array( 'yes', 'no', 'hybrid' );
-        $locations = array( 
-            'Nairobi, Kenya', 'Mombasa, Kenya', 'Kisumu, Kenya', 'Nakuru, Kenya', 
-            'Eldoret, Kenya', 'Thika, Kenya', 'Machakos, Kenya', 'Nyeri, Kenya' 
-        );
-        $companies = array(
-            'TechCorp Kenya', 'Digital Solutions Ltd', 'Creative Agency', 'InnovateHub',
-            'StartupVentures', 'GlobalTech Kenya', 'LocalBusiness Co', 'Enterprise Systems',
-            'WebDevelopers Inc', 'DataAnalytics Pro', 'CloudSolutions Ltd', 'MobileTech Kenya',
-            'EcommercePlatform', 'FinTech Innovations', 'HealthTech Solutions', 'EduTech Kenya'
-        );
-
-        $sample_jobs = array(
-            // Tech Jobs
-            array( 'title' => 'Senior PHP Developer', 'content' => 'We are looking for an experienced PHP developer to join our dynamic team...', 'type' => 'full-time', 'level' => 'senior', 'remote' => 'no', 'salary_min' => 80000, 'salary_max' => 120000 ),
-            array( 'title' => 'Frontend Developer (React)', 'content' => 'Join our frontend team and help build amazing user interfaces with React...', 'type' => 'full-time', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 60000, 'salary_max' => 90000 ),
-            array( 'title' => 'Full Stack JavaScript Developer', 'content' => 'Looking for a full stack developer proficient in Node.js and React...', 'type' => 'full-time', 'level' => 'mid', 'remote' => 'hybrid', 'salary_min' => 70000, 'salary_max' => 100000 ),
-            array( 'title' => 'Python Data Scientist', 'content' => 'Join our data team to analyze complex datasets and build ML models...', 'type' => 'full-time', 'level' => 'senior', 'remote' => 'yes', 'salary_min' => 90000, 'salary_max' => 130000 ),
-            array( 'title' => 'Mobile App Developer (Flutter)', 'content' => 'Develop cross-platform mobile applications using Flutter framework...', 'type' => 'contract', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 50000, 'salary_max' => 80000 ),
-            array( 'title' => 'DevOps Engineer', 'content' => 'Manage our cloud infrastructure and deployment pipelines...', 'type' => 'full-time', 'level' => 'senior', 'remote' => 'hybrid', 'salary_min' => 85000, 'salary_max' => 125000 ),
-            array( 'title' => 'UI/UX Designer', 'content' => 'Create intuitive and beautiful user interfaces for web and mobile apps...', 'type' => 'part-time', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 40000, 'salary_max' => 70000 ),
-            array( 'title' => 'Junior Web Developer', 'content' => 'Great opportunity for a junior developer to grow their skills...', 'type' => 'full-time', 'level' => 'entry', 'remote' => 'no', 'salary_min' => 35000, 'salary_max' => 55000 ),
-            
-            // Marketing Jobs
-            array( 'title' => 'Digital Marketing Manager', 'content' => 'Lead our digital marketing efforts across all channels...', 'type' => 'full-time', 'level' => 'senior', 'remote' => 'hybrid', 'salary_min' => 60000, 'salary_max' => 90000 ),
-            array( 'title' => 'Content Marketing Specialist', 'content' => 'Create engaging content for our blog, social media, and email campaigns...', 'type' => 'part-time', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 35000, 'salary_max' => 55000 ),
-            array( 'title' => 'SEO Specialist', 'content' => 'Optimize our website and content for search engines...', 'type' => 'freelance', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 30000, 'salary_max' => 50000 ),
-            array( 'title' => 'Social Media Manager', 'content' => 'Manage our social media presence across multiple platforms...', 'type' => 'part-time', 'level' => 'entry', 'remote' => 'yes', 'salary_min' => 25000, 'salary_max' => 40000 ),
-            
-            // Business Jobs
-            array( 'title' => 'Project Manager', 'content' => 'Lead cross-functional teams to deliver projects on time and budget...', 'type' => 'full-time', 'level' => 'senior', 'remote' => 'hybrid', 'salary_min' => 70000, 'salary_max' => 100000 ),
-            array( 'title' => 'Business Analyst', 'content' => 'Analyze business processes and recommend improvements...', 'type' => 'full-time', 'level' => 'mid', 'remote' => 'no', 'salary_min' => 55000, 'salary_max' => 80000 ),
-            array( 'title' => 'Sales Representative', 'content' => 'Generate leads and close deals with potential clients...', 'type' => 'full-time', 'level' => 'entry', 'remote' => 'no', 'salary_min' => 40000, 'salary_max' => 60000 ),
-            array( 'title' => 'Customer Success Manager', 'content' => 'Ensure our customers achieve their goals using our products...', 'type' => 'full-time', 'level' => 'mid', 'remote' => 'hybrid', 'salary_min' => 50000, 'salary_max' => 75000 ),
-            
-            // Design Jobs
-            array( 'title' => 'Graphic Designer', 'content' => 'Create visual content for print and digital media...', 'type' => 'part-time', 'level' => 'entry', 'remote' => 'yes', 'salary_min' => 30000, 'salary_max' => 50000 ),
-            array( 'title' => 'Brand Designer', 'content' => 'Develop and maintain brand identity across all touchpoints...', 'type' => 'contract', 'level' => 'senior', 'remote' => 'yes', 'salary_min' => 60000, 'salary_max' => 90000 ),
-            array( 'title' => 'Video Editor', 'content' => 'Edit promotional videos and marketing content...', 'type' => 'freelance', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 35000, 'salary_max' => 55000 ),
-            
-            // Finance Jobs
-            array( 'title' => 'Financial Analyst', 'content' => 'Analyze financial data and create reports for management...', 'type' => 'full-time', 'level' => 'mid', 'remote' => 'no', 'salary_min' => 55000, 'salary_max' => 80000 ),
-            array( 'title' => 'Accounting Assistant', 'content' => 'Support the accounting team with daily financial operations...', 'type' => 'part-time', 'level' => 'entry', 'remote' => 'no', 'salary_min' => 25000, 'salary_max' => 40000 ),
-            
-            // Operations Jobs
-            array( 'title' => 'Operations Manager', 'content' => 'Oversee daily operations and improve efficiency...', 'type' => 'full-time', 'level' => 'executive', 'remote' => 'hybrid', 'salary_min' => 80000, 'salary_max' => 120000 ),
-            array( 'title' => 'HR Specialist', 'content' => 'Handle recruitment, employee relations, and HR policies...', 'type' => 'full-time', 'level' => 'mid', 'remote' => 'no', 'salary_min' => 45000, 'salary_max' => 65000 ),
-            
-            // Additional Jobs to reach 25+
-            array( 'title' => 'Database Administrator', 'content' => 'Manage and optimize database systems...', 'type' => 'full-time', 'level' => 'senior', 'remote' => 'hybrid', 'salary_min' => 75000, 'salary_max' => 105000 ),
-            array( 'title' => 'Quality Assurance Tester', 'content' => 'Test software applications for bugs and usability issues...', 'type' => 'contract', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 40000, 'salary_max' => 60000 ),
-            array( 'title' => 'Technical Writer', 'content' => 'Create technical documentation and user guides...', 'type' => 'freelance', 'level' => 'mid', 'remote' => 'yes', 'salary_min' => 35000, 'salary_max' => 55000 )
-        );
-
-        $created_count = 0;
-        foreach ( $sample_jobs as $index => $job_data ) {
-            $post_id = wp_insert_post( array(
-                'post_title'   => $job_data['title'],
-                'post_content' => $job_data['content'],
-                'post_status'  => 'publish',
-                'post_type'    => 'job',
-                'post_author'  => 1,
-                'post_date'    => date( 'Y-m-d H:i:s', strtotime( '-' . rand( 1, 30 ) . ' days' ) )
-            ) );
-
-            if ( $post_id && ! is_wp_error( $post_id ) ) {
-                $location_index = $index % count( $locations );
-                $company_index = $index % count( $companies );
-                
-                update_post_meta( $post_id, 'job_type', $job_data['type'] );
-                update_post_meta( $post_id, 'job_location', $locations[$location_index] );
-                update_post_meta( $post_id, 'company_name', $companies[$company_index] );
-                update_post_meta( $post_id, 'salary_min', $job_data['salary_min'] );
-                update_post_meta( $post_id, 'salary_max', $job_data['salary_max'] );
-                update_post_meta( $post_id, 'experience_level', $job_data['level'] );
-                update_post_meta( $post_id, 'is_remote', $job_data['remote'] );
-                update_post_meta( $post_id, 'featured', rand( 0, 1 ) ? '1' : '0' );
-                
-                $created_count++;
-            }
-        }
-
-        error_log( 'Sleeve KE: Created ' . $created_count . ' sample jobs' );
-        
-        // Mark sample jobs as created
-        update_option( 'sleeve_ke_sample_jobs_created', true );
+        // Do not auto-create sample jobs here. Samples are managed via the tools helper.
     }
 
     /**
@@ -542,13 +452,20 @@ class Sleeve_KE_Job_Display {
             <?php endif; ?>
 
             <div class="job-header">
-                <?php if ( $atts['show_company_logo'] === 'true' && $company_logo ) : ?>
-                    <div class="company-logo">
-                        <img src="<?php echo esc_url( $company_logo ); ?>" 
-                             alt="<?php echo esc_attr( $company_name ); ?>"
-                             loading="lazy">
-                    </div>
-                <?php endif; ?>
+                <?php
+                // Render company logo via helper if available
+                if ( isset( $this->thumbnails ) ) {
+                    echo $this->thumbnails->render_logo_html( $post->ID, $company_name, $atts['show_company_logo'] );
+                } else {
+                    if ( $atts['show_company_logo'] === 'true' && $company_logo ) : ?>
+                        <div class="company-logo">
+                            <img src="<?php echo esc_url( $company_logo ); ?>" 
+                                 alt="<?php echo esc_attr( $company_name ); ?>"
+                                 loading="lazy">
+                        </div>
+                    <?php endif; 
+                }
+                ?>
                 
                 <div class="job-info">
                     <h3 class="job-title">

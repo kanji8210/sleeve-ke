@@ -119,15 +119,73 @@ class Sleeve_KE_Database {
         // Include WordPress upgrade library
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
+        // Determine which tables already exist before creation
+        $tables_to_check = array(
+            $table_jobs,
+            $table_applications,
+            $table_candidates,
+            $table_employers,
+            $table_payments
+        );
+        $already_existing = array();
+        foreach ( $tables_to_check as $t ) {
+            $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $t ) );
+            if ( $exists ) {
+                $already_existing[] = $t;
+            }
+        }
+
         // Execute table creation
         dbDelta($sql_jobs);
         dbDelta($sql_applications);
         dbDelta($sql_candidates);
         dbDelta($sql_employers);
         dbDelta($sql_payments);
-        
+
+        // Determine which tables were created by this run
+        $created_tables = array();
+        foreach ( $tables_to_check as $t ) {
+            $exists_after = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $t ) );
+            if ( $exists_after && ! in_array( $t, $already_existing, true ) ) {
+                $created_tables[] = $t;
+            }
+        }
+
+        // If any tables were created, persist an option so admin notice can display it once
+        if ( ! empty( $created_tables ) ) {
+            update_option( 'sleeve_ke_created_tables', $created_tables );
+        }
+
         // Save database version
         update_option('sleeve_ke_db_version', SLEEVE_KE_VERSION);
+
+        // Return created tables for callers that want immediate feedback
+        return $created_tables;
+    }
+
+    /**
+     * Check existence status of plugin tables.
+     *
+     * @return array Associative array map table_name => bool (exists)
+     */
+    public static function tables_status() {
+        global $wpdb;
+
+        $tables = array(
+            $wpdb->prefix . 'sleeve_jobs',
+            $wpdb->prefix . 'sleeve_applications',
+            $wpdb->prefix . 'sleeve_candidates',
+            $wpdb->prefix . 'sleeve_employers',
+            $wpdb->prefix . 'sleeve_payments'
+        );
+
+        $status = array();
+        foreach ( $tables as $t ) {
+            $exists = (bool) $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $t ) );
+            $status[ $t ] = $exists;
+        }
+
+        return $status;
     }
     
     /**

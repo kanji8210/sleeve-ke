@@ -83,6 +83,60 @@ class Sleeve_KE_Admin {
         add_action( 'wp_ajax_update_employer_status', array( $this->employers_manager, 'ajax_update_employer_status' ) );
         add_action( 'wp_ajax_view_email_content', array( $this->notifications_manager, 'ajax_view_email_content' ) );
         add_action( 'wp_ajax_resend_email', array( $this->notifications_manager, 'ajax_resend_email' ) );
+
+        // Show admin notice if activation created DB tables
+        add_action( 'admin_notices', array( $this, 'maybe_show_table_creation_notice' ) );
+        // Handle manual table creation from dashboard
+        add_action( 'admin_post_sleeve_ke_create_tables', array( $this, 'handle_create_tables' ) );
+    }
+
+    /**
+     * Show an admin notice once if the activator created DB tables during plugin activation.
+     */
+    public function maybe_show_table_creation_notice() {
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            return;
+        }
+        // First check for transient set by manual dashboard action
+        $created = get_transient( 'sleeve_ke_last_created_tables' );
+        if ( empty( $created ) ) {
+            $created = get_option( 'sleeve_ke_created_tables', array() );
+        }
+
+        if ( ! empty( $created ) && is_array( $created ) ) {
+            $list = implode( ', ', array_map( 'esc_html', $created ) );
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p>' . sprintf( __( 'Sleeve KE: The following database table(s) were created: %s', 'sleeve-ke' ), $list ) . '</p>';
+            echo '</div>';
+
+            // Remove transient and option so notice only shows once
+            delete_transient( 'sleeve_ke_last_created_tables' );
+            delete_option( 'sleeve_ke_created_tables' );
+        }
+    }
+
+    /**
+     * Handle admin action to create plugin tables from the dashboard.
+     */
+    public function handle_create_tables() {
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            wp_die( __( 'Insufficient permissions', 'sleeve-ke' ) );
+        }
+
+        check_admin_referer( 'sleeve_ke_create_tables_action', 'sleeve_ke_create_tables_nonce' );
+
+        // Create tables and capture which were created
+        if ( class_exists( 'Sleeve_KE_Database' ) ) {
+            $created = Sleeve_KE_Database::create_tables();
+            if ( ! empty( $created ) ) {
+                set_transient( 'sleeve_ke_last_created_tables', $created, HOUR_IN_SECONDS );
+            }
+        }
+
+        // Redirect back to plugin dashboard
+        $redirect = admin_url( 'admin.php?page=sleeve-ke' );
+        wp_safe_redirect( $redirect );
+        exit;
     }
 
     /**
@@ -273,6 +327,38 @@ class Sleeve_KE_Admin {
             <div class="sleeve-ke-dashboard">
                 <h2><?php esc_html_e( 'Welcome to Sleeve KE', 'sleeve-ke' ); ?></h2>
                 <p><?php esc_html_e( 'Manage your job portal from this dashboard.', 'sleeve-ke' ); ?></p>
+                <?php
+                // Show DB tables status block
+                if ( class_exists( 'Sleeve_KE_Database' ) ) {
+                    $tables_status = Sleeve_KE_Database::tables_status();
+                    echo '<div style="margin-top:12px;padding:10px;background:#fff;border-left:4px solid #0073aa;">';
+                    echo '<h3>' . esc_html__( 'Database tables status', 'sleeve-ke' ) . '</h3>';
+                    echo '<ul style="list-style:none;padding-left:0;margin:0;">';
+                    foreach ( $tables_status as $table => $exists ) {
+                        $ok = $exists ? '<span style="color:green;font-weight:700">OK</span>' : '<span style="color:#a33;font-weight:700">Missing</span>';
+                        echo '<li style="margin-bottom:4px;">' . esc_html( $table ) . ' — ' . $ok . '</li>';
+                    }
+                    echo '</ul>';
+                    echo '</div>';
+
+                    // If any tables are missing, show a secure button to create them
+                    $missing = array_filter( $tables_status, function( $v ) { return ! $v; } );
+                    if ( ! empty( $missing ) ) {
+                        echo '<div style="margin-top:12px;padding:10px;background:#fff;border-left:4px solid #ff9900;">';
+                        echo '<p>' . esc_html__( 'Some plugin database tables are missing. Click the button below to create the missing tables.', 'sleeve-ke' ) . '</p>';
+                        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+                        echo '<input type="hidden" name="action" value="sleeve_ke_create_tables" />';
+                        wp_nonce_field( 'sleeve_ke_create_tables_action', 'sleeve_ke_create_tables_nonce' );
+                        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Create missing tables', 'sleeve-ke' ) . '</button>';
+                        echo '</form>';
+                        echo '</div>';
+                    } else {
+                        echo '<div style="margin-top:12px;padding:10px;background:#fff;border-left:4px solid #46b450;">';
+                        echo '<p>' . esc_html__( 'All plugin database tables exist.', 'sleeve-ke' ) . '</p>';
+                        echo '</div>';
+                    }
+                }
+                ?>
                 <div class="sleeve-ke-stats">
                     <div class="stat-box">
                         <h3><?php esc_html_e( 'Total Applications', 'sleeve-ke' ); ?></h3>
