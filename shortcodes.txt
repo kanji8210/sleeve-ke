@@ -266,6 +266,68 @@ Notes:
 
 
 ===============================================
+5. EMPLOYER APPLICATIONS MANAGEMENT
+===============================================
+Shortcode: [sleeve_ke_employer_applications]
+
+Description:
+Displays a complete application management dashboard for employers to review 
+and manage job applications submitted to their job postings. Employers can 
+schedule interviews and update application statuses without direct candidate 
+contact information.
+
+Features:
+- View all applications to employer's jobs
+- Application statistics dashboard (Total, Pending, Interview, Accepted)
+- Filter by job position, status, or search candidates
+- View detailed candidate profiles (experience, education, skills)
+- Download candidate resumes
+- View cover letters
+- Schedule interviews with date/time and location
+- Update application status (Pending, Reviewed, Interview, Accepted, Rejected)
+- Internal notes system
+- No direct candidate contact (email/phone hidden)
+
+Usage:
+Add to employer applications page:
+[sleeve_ke_employer_applications]
+
+Parameters: None
+
+Access Control:
+- Only visible to logged-in users with 'employer' role
+- Non-employers see access denied message
+- Employers only see applications to their own jobs
+
+Application Statuses:
+- Pending: New application awaiting review
+- Reviewed: Application has been reviewed
+- Interview: Interview scheduled with candidate
+- Accepted: Candidate accepted for position
+- Rejected: Application declined
+
+Actions Available:
+1. View Details: Opens modal with full candidate information
+2. Schedule Interview: Set date, location/method (Zoom, Office, etc.)
+3. Mark as Reviewed: Change status to reviewed
+4. Accept Application: Accept the candidate
+5. Reject Application: Decline the application
+
+Example:
+Create a page called "My Applications" (slug: employer-applications) and add:
+[sleeve_ke_employer_applications]
+
+Notes:
+- Requires user to be logged in as employer
+- Applications are automatically filtered by employer's jobs
+- Interview notifications sent to candidates (system handles communication)
+- Candidate contact information is not displayed to maintain privacy
+- Resume download available for all applications
+- Responsive design for mobile access
+- AJAX-powered for smooth user experience
+
+
+===============================================
 ADDITIONAL INFORMATION
 ===============================================
 
@@ -284,6 +346,12 @@ Page Creation Recommendations:
 3. Create "Employer Dashboard" page:
    - Slug: employer-profile
    - Content: [sleeve_ke_employer_profile]
+   - Template: Full Width
+   - Set as private or require login
+
+3b. Create "My Applications" page:
+   - Slug: employer-applications
+   - Content: [sleeve_ke_employer_applications]
    - Template: Full Width
    - Set as private or require login
 
@@ -307,6 +375,7 @@ Add these pages to your WordPress menu for easy navigation:
 - Register as Employer
 - Register as Candidate
 - Employer Dashboard (visible only to employers)
+- My Applications (visible only to employers)
 
 
 Styling:
