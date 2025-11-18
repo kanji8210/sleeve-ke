@@ -68,6 +68,7 @@ if ( ! is_admin() ) {
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-thumbnails.php';
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-employer-profile.php';
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-employer-applications.php';
+    require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-dashboard.php';
     
     // Initialize frontend classes on init
     add_action( 'init', function() {
@@ -75,6 +76,7 @@ if ( ! is_admin() ) {
         new Sleeve_KE_Job_Display();
         new Sleeve_KE_Employer_Profile();
         new Sleeve_KE_Employer_Applications();
+        new Sleeve_KE_Dashboard();
         // Simple server-side display for debugging and verification (only if available)
         if ( class_exists( 'Sleeve_KE_Job_Display_Simple' ) ) {
             new Sleeve_KE_Job_Display_Simple();

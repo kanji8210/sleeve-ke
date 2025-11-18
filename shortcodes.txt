@@ -328,54 +328,139 @@ Notes:
 
 
 ===============================================
+6. UNIVERSAL DASHBOARD
+===============================================
+Shortcode: [sleeve_ke_dashboard]
+
+Description:
+Displays a role-based dashboard that automatically adapts to the logged-in user's 
+role (employer, candidate, or admin). Provides quick access to key features and 
+statistics relevant to each user type.
+
+Features:
+- Automatic role detection and appropriate dashboard display
+- Login prompt for non-logged-in users with registration links
+- Role-specific statistics and metrics
+- Quick action buttons for common tasks
+- Recent activity display
+- Profile completion indicator (candidates)
+- Responsive design
+
+EMPLOYER DASHBOARD FEATURES:
+- Statistics: Total Jobs, Active Jobs, Applications, Pending Review
+- Quick Actions: Post New Job, Manage Jobs, View Applications, Edit Profile
+- Recent Applications table with candidate names, positions, dates, status
+- Company name display
+
+CANDIDATE DASHBOARD FEATURES:
+- Profile completion progress bar with percentage
+- Statistics: Total Applications, Pending, Interviews, Saved Jobs
+- Quick Actions: Browse Jobs, My Applications, Saved Jobs, Edit Profile
+- Recent Applications table with job titles, companies, dates, status
+
+ADMIN DASHBOARD FEATURES:
+- Quick Actions: Manage Jobs, Manage Candidates, Manage Employers, Manage Applications
+- Direct links to all admin management pages
+
+Usage:
+Create a "Dashboard" or "My Account" page and add:
+[sleeve_ke_dashboard]
+
+Parameters: None
+
+Access Control:
+- Shows login prompt if user not logged in
+- Automatically detects user role (employer/candidate/admin)
+- Displays appropriate dashboard based on role
+- Access denied message for users without proper roles
+
+Examples:
+
+1. Create main dashboard page:
+   Page title: "Dashboard"
+   Slug: dashboard
+   Content: [sleeve_ke_dashboard]
+   Template: Full Width
+
+2. Create "My Account" page:
+   Page title: "My Account"
+   Slug: my-account
+   Content: [sleeve_ke_dashboard]
+
+3. Set as redirect after login:
+   Use redirect_to parameter in login forms to send users to dashboard page
+
+Notes:
+- Single shortcode works for all user types
+- No configuration needed - automatically adapts
+- Shows registration links for non-logged-in visitors
+- Statistics are live from database
+- Recent items limited to 5 for quick overview
+- "View All" links go to full management pages
+- Profile completion encourages candidates to add more info
+- Fully responsive for mobile devices
+
+
+===============================================
 ADDITIONAL INFORMATION
 ===============================================
 
 Page Creation Recommendations:
 
-1. Create "Register as Employer" page:
+1. Create "Dashboard" page (RECOMMENDED - Main dashboard for all users):
+   - Slug: dashboard
+   - Content: [sleeve_ke_dashboard]
+   - Template: Full Width
+   - Set as redirect after login
+
+2. Create "Register as Employer" page:
    - Slug: employer-registration
    - Content: [sleeve_ke_employer_registration]
    - Template: Full Width
 
-2. Create "Register as Candidate" page:
+3. Create "Register as Candidate" page:
    - Slug: candidate-registration
    - Content: [sleeve_ke_candidate_registration]
    - Template: Full Width
 
-3. Create "Employer Dashboard" page:
+4. Create "Employer Profile" page:
    - Slug: employer-profile
    - Content: [sleeve_ke_employer_profile]
    - Template: Full Width
    - Set as private or require login
 
-3b. Create "My Applications" page:
+5. Create "My Applications" page (for employers):
    - Slug: employer-applications
    - Content: [sleeve_ke_employer_applications]
    - Template: Full Width
    - Set as private or require login
 
-4. Create "Browse Jobs" page:
+6. Create "Browse Jobs" page:
    - Slug: jobs
    - Content: [sleeve_ke_jobs]
    - Template: Full Width
 
-5. Create "Featured Jobs" page:
+7. Create "Featured Jobs" page:
    - Slug: featured-jobs
    - Content: [sleeve_ke_jobs featured_only="true" columns="3"]
 
-6. Create "Remote Jobs" page:
+8. Create "Remote Jobs" page:
    - Slug: remote-jobs
    - Content: [sleeve_ke_jobs remote_work="remote"]
 
 
 Menu Integration:
 Add these pages to your WordPress menu for easy navigation:
+- Dashboard (visible only to logged-in users - adapts to role)
 - Jobs (Browse all jobs)
 - Register as Employer
 - Register as Candidate
 - Employer Dashboard (visible only to employers)
 - My Applications (visible only to employers)
+
+Login Redirect Suggestion:
+Set the Dashboard page (with [sleeve_ke_dashboard] shortcode) as your login redirect URL.
+Users will automatically see their role-appropriate dashboard after logging in.
 
 
 Styling:
