@@ -59,6 +59,29 @@ class Sleeve_KE_Employers {
         $employers = $this->get_employers_data();
         $statuses = $this->get_status_options();
         $current_user = wp_get_current_user();
+        
+        // Display success messages
+        if (isset($_GET['employer_created'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . 
+                 __('Employer created successfully!', 'sleeve-ke') . 
+                 '</p></div>';
+        }
+        
+        if (isset($_GET['employer_deleted'])) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . 
+                 __('Employer deleted successfully!', 'sleeve-ke') . 
+                 '</p></div>';
+        }
+        
+        if (isset($_GET['bulk_action_done'])) {
+            $message = get_transient('sleeve_ke_bulk_action_message');
+            if ($message) {
+                echo '<div class="notice notice-success is-dismissible"><p>' . 
+                     esc_html($message) . 
+                     '</p></div>';
+                delete_transient('sleeve_ke_bulk_action_message');
+            }
+        }
         ?>
         <div class="wrap">
             <h1>
@@ -345,128 +368,87 @@ class Sleeve_KE_Employers {
     }
 
     /**
-     * Get employers data (mock data for demonstration)
+     * Get employers data from database
      */
     public function get_employers_data() {
+        global $wpdb;
+        
         // Apply filters if any
         $search = isset( $_GET['search'] ) ? sanitize_text_field( $_GET['search'] ) : '';
         $status_filter = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : '';
         $size_filter = isset( $_GET['company_size'] ) ? sanitize_text_field( $_GET['company_size'] ) : '';
         $industry_filter = isset( $_GET['industry'] ) ? sanitize_text_field( $_GET['industry'] ) : '';
+        
+        // Get users with employer role
+        $user_query = new WP_User_Query(array(
+            'role' => 'employer',
+            'orderby' => 'registered',
+            'order' => 'DESC',
+            'number' => -1
+        ));
+        
+        $employers = array();
+        $employers_table = $wpdb->prefix . 'sleeve_employers';
+        
+        foreach ($user_query->get_results() as $user) {
+            // Get employer profile from custom table
+            $profile = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$employers_table} WHERE user_id = %d",
+                $user->ID
+            ), ARRAY_A);
+            
+            // Count active jobs for this employer
+            $active_jobs = count(get_posts(array(
+                'post_type' => 'job',
+                'post_status' => 'publish',
+                'author' => $user->ID,
+                'posts_per_page' => -1
+            )));
+            
+            // Count total jobs posted
+            $total_jobs = count(get_posts(array(
+                'post_type' => 'job',
+                'post_status' => 'any',
+                'author' => $user->ID,
+                'posts_per_page' => -1
+            )));
+            
+            // Get last login from user meta
+            $last_login = get_user_meta($user->ID, 'last_login', true);
+            
+            // Build employer data array
+            $employer_data = array(
+                'id' => $profile ? $profile['id'] : 0,
+                'user_id' => $user->ID,
+                'company_name' => $profile ? $profile['company_name'] : $user->display_name,
+                'contact_person' => $user->display_name,
+                'email' => $user->user_email,
+                'phone' => $profile ? $profile['phone'] : '',
+                'industry' => $profile ? $profile['industry'] : 'other',
+                'company_size' => $profile ? $profile['company_size'] : 'startup',
+                'location' => $profile ? $profile['location'] : '',
+                'website' => $profile ? $profile['website'] : '',
+                'description' => $profile ? $profile['company_description'] : '',
+                'founded_year' => '',
+                'employees_count' => '',
+                'active_jobs_count' => $active_jobs,
+                'total_jobs_posted' => $total_jobs,
+                'subscription_plan' => get_user_meta($user->ID, 'subscription_plan', true) ?: 'free',
+                'subscription_expires' => get_user_meta($user->ID, 'subscription_expires', true),
+                'status' => get_user_meta($user->ID, 'employer_status', true) ?: 'pending',
+                'registered_date' => date('Y-m-d', strtotime($user->user_registered)),
+                'last_login' => $last_login ? date('Y-m-d', strtotime($last_login)) : 'Never'
+            );
+            
+            $employers[] = $employer_data;
+        }
 
-        // Mock data - in real implementation, this would fetch from database
-        $all_employers = array(
-            array(
-                'id' => 1,
-                'company_name' => 'TechCorp Solutions Ltd',
-                'contact_person' => 'James Mwangi',
-                'email' => 'hr@techcorp.co.ke',
-                'phone' => '+254 700 111 222',
-                'industry' => 'technology',
-                'company_size' => 'medium',
-                'location' => 'Nairobi, Kenya',
-                'website' => 'https://techcorp.co.ke',
-                'description' => 'Leading technology solutions provider specializing in custom software development, cloud services, and digital transformation for East African businesses.',
-                'founded_year' => 2015,
-                'employees_count' => 85,
-                'active_jobs_count' => 4,
-                'total_jobs_posted' => 23,
-                'subscription_plan' => 'premium',
-                'subscription_expires' => '2025-12-31',
-                'status' => 'active',
-                'registered_date' => '2025-01-15',
-                'last_login' => '2025-10-17'
-            ),
-            array(
-                'id' => 2,
-                'company_name' => 'HealthCare Plus',
-                'contact_person' => 'Dr. Sarah Kimani',
-                'email' => 'recruitment@healthcareplus.co.ke',
-                'phone' => '+254 722 333 444',
-                'industry' => 'healthcare',
-                'company_size' => 'large',
-                'location' => 'Mombasa, Kenya',
-                'website' => 'https://healthcareplus.co.ke',
-                'description' => 'Modern healthcare facility providing comprehensive medical services with state-of-the-art equipment and experienced medical professionals.',
-                'founded_year' => 2010,
-                'employees_count' => 320,
-                'active_jobs_count' => 7,
-                'total_jobs_posted' => 45,
-                'subscription_plan' => 'enterprise',
-                'subscription_expires' => '2026-03-15',
-                'status' => 'active',
-                'registered_date' => '2024-11-20',
-                'last_login' => '2025-10-16'
-            ),
-            array(
-                'id' => 3,
-                'company_name' => 'GreenAgri Innovations',
-                'contact_person' => 'Peter Oduya',
-                'email' => 'jobs@greenagri.co.ke',
-                'phone' => '+254 733 555 666',
-                'industry' => 'agriculture',
-                'company_size' => 'small',
-                'location' => 'Eldoret, Kenya',
-                'website' => 'https://greenagri.co.ke',
-                'description' => 'Innovative agricultural company focused on sustainable farming practices, organic produce, and modern farming technology solutions.',
-                'founded_year' => 2018,
-                'employees_count' => 35,
-                'active_jobs_count' => 2,
-                'total_jobs_posted' => 8,
-                'subscription_plan' => 'basic',
-                'subscription_expires' => '2025-11-30',
-                'status' => 'approved',
-                'registered_date' => '2025-06-10',
-                'last_login' => '2025-10-14'
-            ),
-            array(
-                'id' => 4,
-                'company_name' => 'EduTech Academy',
-                'contact_person' => 'Mary Wanjugu',
-                'email' => 'hr@edutech.ac.ke',
-                'phone' => '+254 711 777 888',
-                'industry' => 'education',
-                'company_size' => 'medium',
-                'location' => 'Kisumu, Kenya',
-                'website' => 'https://edutech.ac.ke',
-                'description' => 'Progressive educational institution offering technology-enhanced learning programs and professional development courses.',
-                'founded_year' => 2020,
-                'employees_count' => 120,
-                'active_jobs_count' => 6,
-                'total_jobs_posted' => 18,
-                'subscription_plan' => 'premium',
-                'subscription_expires' => '2025-12-15',
-                'status' => 'active',
-                'registered_date' => '2024-08-05',
-                'last_login' => '2025-10-17'
-            ),
-            array(
-                'id' => 5,
-                'company_name' => 'StartUp Innovators',
-                'contact_person' => 'Alex Ngugi',
-                'email' => 'team@startupinnovators.co.ke',
-                'phone' => '+254 700 999 000',
-                'industry' => 'technology',
-                'company_size' => 'startup',
-                'location' => 'Nakuru, Kenya',
-                'website' => 'https://startupinnovators.co.ke',
-                'description' => 'Dynamic startup focused on developing innovative mobile applications and digital solutions for emerging markets.',
-                'founded_year' => 2023,
-                'employees_count' => 8,
-                'active_jobs_count' => 1,
-                'total_jobs_posted' => 3,
-                'subscription_plan' => 'free',
-                'subscription_expires' => null,
-                'status' => 'pending',
-                'registered_date' => '2025-09-20',
-                'last_login' => '2025-10-15'
-            )
-        );
-
+        
         // Apply filters
-        $filtered_employers = $all_employers;
-
+        $filtered_employers = $employers;
+        
         if ( ! empty( $search ) ) {
+
             $filtered_employers = array_filter( $filtered_employers, function( $employer ) use ( $search ) {
                 return stripos( $employer['company_name'], $search ) !== false || 
                        stripos( $employer['email'], $search ) !== false ||
@@ -531,10 +513,185 @@ class Sleeve_KE_Employers {
      * Display add employer form.
      */
     private function display_add_employer_form() {
-        echo '<div class="wrap">';
-        echo '<h1>' . esc_html__( 'Add New Employer', 'sleeve-ke' ) . '</h1>';
-        echo '<p>' . esc_html__( 'Form for adding new employers will be implemented here.', 'sleeve-ke' ) . '</p>';
-        echo '</div>';
+        $industries = $this->get_industries();
+        $company_sizes = $this->get_company_sizes();
+        $statuses = $this->get_status_options();
+        
+        // Get form values from transient (if validation failed)
+        $form_values = get_transient('sleeve_ke_employer_form_values');
+        $form_errors = get_transient('sleeve_ke_employer_form_errors');
+        
+        // Check for success message
+        $success_data = get_transient('sleeve_ke_employer_created_success');
+        
+        delete_transient('sleeve_ke_employer_form_values');
+        delete_transient('sleeve_ke_employer_form_errors');
+        delete_transient('sleeve_ke_employer_created_success');
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Add New Employer', 'sleeve-ke' ); ?></h1>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=sleeve-ke-employers' ) ); ?>" class="button">
+                <?php esc_html_e( '← Back to Employers', 'sleeve-ke' ); ?>
+            </a>
+            
+            <?php if ($success_data): ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><strong><?php esc_html_e('Success!', 'sleeve-ke'); ?></strong> 
+                    <?php printf(__('Employer "%s" has been created successfully!', 'sleeve-ke'), esc_html($success_data['company_name'])); ?>
+                    <a href="<?php echo esc_url(get_permalink(get_page_by_path('employer-profile')->ID) . '?user_id=' . $success_data['user_id']); ?>" class="button button-primary">
+                        <?php esc_html_e('View Profile', 'sleeve-ke'); ?>
+                    </a>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($form_errors): ?>
+                <div class="notice notice-error is-dismissible">
+                    <p><strong><?php esc_html_e('Please correct the following errors:', 'sleeve-ke'); ?></strong></p>
+                    <ul style="list-style: disc; margin-left: 20px;">
+                        <?php foreach ($form_errors as $error): ?>
+                            <li><?php echo esc_html($error); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+            
+            <form method="post" action="" class="sleeve-ke-employer-form" enctype="multipart/form-data">
+                <?php wp_nonce_field('sleeve_ke_add_employer', 'sleeve_employer_nonce'); ?>
+                <input type="hidden" name="action" value="add_employer" />
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="username"><?php esc_html_e('Username', 'sleeve-ke'); ?> <span class="required">*</span></label></th>
+                        <td>
+                            <input type="text" id="username" name="username" class="regular-text" required
+                                   value="<?php echo esc_attr($form_values['username'] ?? ''); ?>" />
+                            <p class="description"><?php esc_html_e('Login username for the employer account.', 'sleeve-ke'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="email"><?php esc_html_e('Email Address', 'sleeve-ke'); ?> <span class="required">*</span></label></th>
+                        <td>
+                            <input type="email" id="email" name="email" class="regular-text" required
+                                   value="<?php echo esc_attr($form_values['email'] ?? ''); ?>" />
+                            <p class="description"><?php esc_html_e('Contact email for the employer.', 'sleeve-ke'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="password"><?php esc_html_e('Password', 'sleeve-ke'); ?> <span class="required">*</span></label></th>
+                        <td>
+                            <input type="password" id="password" name="password" class="regular-text" required />
+                            <p class="description"><?php esc_html_e('Initial password for the account.', 'sleeve-ke'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="company_name"><?php esc_html_e('Company Name', 'sleeve-ke'); ?> <span class="required">*</span></label></th>
+                        <td>
+                            <input type="text" id="company_name" name="company_name" class="regular-text" required
+                                   value="<?php echo esc_attr($form_values['company_name'] ?? ''); ?>" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="phone"><?php esc_html_e('Phone Number', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <input type="tel" id="phone" name="phone" class="regular-text"
+                                   value="<?php echo esc_attr($form_values['phone'] ?? ''); ?>" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="website"><?php esc_html_e('Website', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <input type="url" id="website" name="website" class="regular-text"
+                                   value="<?php echo esc_attr($form_values['website'] ?? ''); ?>" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="location"><?php esc_html_e('Location', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <input type="text" id="location" name="location" class="regular-text"
+                                   value="<?php echo esc_attr($form_values['location'] ?? ''); ?>" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="industry"><?php esc_html_e('Industry', 'sleeve-ke'); ?> <span class="required">*</span></label></th>
+                        <td>
+                            <select id="industry" name="industry" required>
+                                <option value=""><?php esc_html_e('Select Industry', 'sleeve-ke'); ?></option>
+                                <?php foreach ($industries as $key => $label): ?>
+                                    <option value="<?php echo esc_attr($key); ?>" 
+                                            <?php selected($form_values['industry'] ?? '', $key); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="company_size"><?php esc_html_e('Company Size', 'sleeve-ke'); ?> <span class="required">*</span></label></th>
+                        <td>
+                            <select id="company_size" name="company_size" required>
+                                <option value=""><?php esc_html_e('Select Size', 'sleeve-ke'); ?></option>
+                                <?php foreach ($company_sizes as $key => $label): ?>
+                                    <option value="<?php echo esc_attr($key); ?>" 
+                                            <?php selected($form_values['company_size'] ?? '', $key); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="company_description"><?php esc_html_e('Company Description', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <textarea id="company_description" name="company_description" rows="5" class="large-text"><?php echo esc_textarea($form_values['company_description'] ?? ''); ?></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="company_logo"><?php esc_html_e('Company Logo', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <input type="file" id="company_logo" name="company_logo" accept="image/*" />
+                            <p class="description"><?php esc_html_e('Upload company logo (JPG, PNG, max 2MB).', 'sleeve-ke'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="status"><?php esc_html_e('Status', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <select id="status" name="status">
+                                <?php foreach ($statuses as $key => $label): ?>
+                                    <option value="<?php echo esc_attr($key); ?>" 
+                                            <?php selected($form_values['status'] ?? 'approved', $key); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="subscription_plan"><?php esc_html_e('Subscription Plan', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <select id="subscription_plan" name="subscription_plan">
+                                <option value="free" <?php selected($form_values['subscription_plan'] ?? 'free', 'free'); ?>><?php esc_html_e('Free', 'sleeve-ke'); ?></option>
+                                <option value="basic" <?php selected($form_values['subscription_plan'] ?? '', 'basic'); ?>><?php esc_html_e('Basic', 'sleeve-ke'); ?></option>
+                                <option value="premium" <?php selected($form_values['subscription_plan'] ?? '', 'premium'); ?>><?php esc_html_e('Premium', 'sleeve-ke'); ?></option>
+                                <option value="enterprise" <?php selected($form_values['subscription_plan'] ?? '', 'enterprise'); ?>><?php esc_html_e('Enterprise', 'sleeve-ke'); ?></option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="send_welcome_email"><?php esc_html_e('Send Welcome Email', 'sleeve-ke'); ?></label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" id="send_welcome_email" name="send_welcome_email" value="1" checked />
+                                <?php esc_html_e('Send account credentials to the employer via email', 'sleeve-ke'); ?>
+                            </label>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button(__('Add Employer', 'sleeve-ke')); ?>
+            </form>
+        </div>
+        <?php
     }
 
     /**
@@ -694,49 +851,306 @@ class Sleeve_KE_Employers {
      * Handle employer actions
      */
     public function handle_employer_actions() {
-        // Handle form submissions and bulk actions
+        // Handle add employer
+        if (isset($_POST['action']) && $_POST['action'] === 'add_employer' && 
+            wp_verify_nonce($_POST['sleeve_employer_nonce'], 'sleeve_ke_add_employer')) {
+            $this->create_employer();
+            return;
+        }
+        
+        // Handle edit employer
+        if (isset($_POST['action']) && $_POST['action'] === 'edit_employer' && 
+            wp_verify_nonce($_POST['sleeve_employer_nonce'], 'sleeve_ke_edit_employer')) {
+            $this->update_employer();
+            return;
+        }
+        
+        // Handle delete employer
+        if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+            $this->delete_employer(intval($_GET['id']));
+            return;
+        }
+        
+        // Handle bulk actions
         if ( isset( $_POST['apply_bulk_action'] ) && isset( $_POST['bulk_action'] ) && isset( $_POST['employer_ids'] ) ) {
             $this->handle_bulk_actions();
         }
+    }
+    
+    /**
+     * Create new employer
+     */
+    private function create_employer() {
+        global $wpdb;
+        
+        error_log('=== ADMIN EMPLOYER CREATION START ===');
+        error_log('POST Data: ' . print_r($_POST, true));
+        error_log('FILES Data: ' . print_r($_FILES, true));
+        
+        // Validate required fields
+        $errors = array();
+        $values = array();
+        
+        $required_fields = array('username', 'email', 'password', 'company_name', 'industry', 'company_size');
+        foreach ($required_fields as $field) {
+            if (empty($_POST[$field])) {
+                $error_msg = sprintf(__('%s is required.', 'sleeve-ke'), ucfirst(str_replace('_', ' ', $field)));
+                $errors[] = $error_msg;
+                error_log('VALIDATION ERROR: ' . $error_msg);
+            } else {
+                $values[$field] = sanitize_text_field($_POST[$field]);
+            }
+        }
+        
+        // Validate email
+        if (!empty($_POST['email']) && !is_email($_POST['email'])) {
+            $errors[] = __('Invalid email address.', 'sleeve-ke');
+            error_log('VALIDATION ERROR: Invalid email address');
+        }
+        
+        // Check if username already exists
+        if (!empty($_POST['username']) && username_exists($_POST['username'])) {
+            $errors[] = __('Username already exists.', 'sleeve-ke');
+            error_log('VALIDATION ERROR: Username already exists - ' . $_POST['username']);
+        }
+        
+        // Check if email already exists
+        if (!empty($_POST['email']) && email_exists($_POST['email'])) {
+            $errors[] = __('Email already exists.', 'sleeve-ke');
+            error_log('VALIDATION ERROR: Email already exists - ' . $_POST['email']);
+        }
+        
+        // If there are errors, store them and redirect back
+        if (!empty($errors)) {
+            error_log('VALIDATION FAILED: ' . count($errors) . ' errors found');
+            error_log('Errors: ' . print_r($errors, true));
+            set_transient('sleeve_ke_employer_form_errors', $errors, 60);
+            set_transient('sleeve_ke_employer_form_values', $_POST, 60);
+            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&action=add'));
+            exit;
+        }
+        
+        error_log('VALIDATION PASSED - Creating WordPress user');
+        
+        // Create WordPress user
+        $user_id = wp_create_user(
+            $values['username'],
+            $_POST['password'],
+            $values['email']
+        );
+        
+        if (is_wp_error($user_id)) {
+            error_log('USER CREATION FAILED: ' . $user_id->get_error_message());
+            set_transient('sleeve_ke_employer_form_errors', array($user_id->get_error_message()), 60);
+            set_transient('sleeve_ke_employer_form_values', $_POST, 60);
+            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&action=add'));
+            exit;
+        }
+        
+        error_log('USER CREATED SUCCESSFULLY - User ID: ' . $user_id);
+        
+        // Set user role to employer
+        $user = new WP_User($user_id);
+        $user->set_role('employer');
+        error_log('USER ROLE SET: employer');
+        
+        // Update user meta
+        update_user_meta($user_id, 'employer_status', sanitize_text_field($_POST['status'] ?? 'approved'));
+        update_user_meta($user_id, 'subscription_plan', sanitize_text_field($_POST['subscription_plan'] ?? 'free'));
+        error_log('USER META UPDATED');
+        
+        // Handle logo upload
+        $logo_url = '';
+        if (!empty($_FILES['company_logo']['name'])) {
+            error_log('LOGO UPLOAD: Processing file - ' . $_FILES['company_logo']['name']);
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            
+            $upload_overrides = array('test_form' => false);
+            $movefile = wp_handle_upload($_FILES['company_logo'], $upload_overrides);
+            
+            if ($movefile && !isset($movefile['error'])) {
+                $logo_url = $movefile['url'];
+                error_log('LOGO UPLOADED SUCCESSFULLY: ' . $logo_url);
+            } else {
+                error_log('LOGO UPLOAD FAILED: ' . print_r($movefile, true));
+            }
+        } else {
+            error_log('NO LOGO FILE PROVIDED');
+        }
+        
+        // Insert into employers table
+        error_log('INSERTING INTO EMPLOYERS TABLE');
+        $employers_table = $wpdb->prefix . 'sleeve_employers';
+        $insert_result = $wpdb->insert(
+            $employers_table,
+            array(
+                'user_id' => $user_id,
+                'company_name' => sanitize_text_field($_POST['company_name']),
+                'company_description' => wp_kses_post($_POST['company_description'] ?? ''),
+                'company_logo' => $logo_url,
+                'phone' => sanitize_text_field($_POST['phone'] ?? ''),
+                'website' => esc_url_raw($_POST['website'] ?? ''),
+                'location' => sanitize_text_field($_POST['location'] ?? ''),
+                'industry' => sanitize_text_field($_POST['industry']),
+                'company_size' => sanitize_text_field($_POST['company_size']),
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ),
+            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+        );
+        
+        if ($insert_result === false) {
+            error_log('DATABASE INSERT FAILED: ' . $wpdb->last_error);
+            error_log('Query: ' . $wpdb->last_query);
+            set_transient('sleeve_ke_employer_form_errors', array('Database error: ' . $wpdb->last_error), 60);
+            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&action=add'));
+            exit;
+        }
+        
+        error_log('DATABASE INSERT SUCCESSFUL - Employer ID: ' . $wpdb->insert_id);
+        
+        // Send welcome email if requested
+        if (!empty($_POST['send_welcome_email'])) {
+            error_log('SENDING WELCOME EMAIL');
+            wp_new_user_notification($user_id, null, 'both');
+        }
+        
+        // Set success transient for display
+        set_transient('sleeve_ke_employer_created_success', array(
+            'user_id' => $user_id,
+            'company_name' => sanitize_text_field($_POST['company_name'])
+        ), 60);
+        
+        // Get the employer profile page URL
+        $profile_page = get_page_by_path('employer-profile');
+        if ($profile_page) {
+            $profile_url = get_permalink($profile_page->ID) . '?user_id=' . $user_id;
+            error_log('REDIRECTING TO PROFILE: ' . $profile_url);
+            // Redirect to employer profile
+            wp_safe_redirect($profile_url);
+        } else {
+            error_log('PROFILE PAGE NOT FOUND - Redirecting to add form with success');
+            // Redirect back to add form to show success message
+            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&action=add&created=1'));
+        }
+        
+        error_log('=== ADMIN EMPLOYER CREATION END - SUCCESS ===');
+        exit;
+    }
+    
+    /**
+     * Update existing employer
+     */
+    private function update_employer() {
+        // Implementation similar to create_employer but for updates
+        // Will be implemented when edit form is ready
+    }
+    
+    /**
+     * Delete employer
+     */
+    private function delete_employer($employer_id) {
+        global $wpdb;
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'sleeve-ke'));
+        }
+        
+        // Get employer data
+        $employers_table = $wpdb->prefix . 'sleeve_employers';
+        $employer = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$employers_table} WHERE id = %d",
+            $employer_id
+        ));
+        
+        if (!$employer) {
+            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&error=not_found'));
+            exit;
+        }
+        
+        // Delete from employers table
+        $wpdb->delete($employers_table, array('id' => $employer_id), array('%d'));
+        
+        // Optionally delete the user account
+        // require_once(ABSPATH.'wp-admin/includes/user.php');
+        // wp_delete_user($employer->user_id);
+        
+        wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&employer_deleted=1'));
+        exit;
     }
 
     /**
      * Handle bulk actions
      */
     private function handle_bulk_actions() {
+        global $wpdb;
+        
         $action = sanitize_text_field( $_POST['bulk_action'] );
         $employer_ids = array_map( 'intval', $_POST['employer_ids'] );
         
-        // Here you would normally update the database
+        if (empty($employer_ids)) {
+            wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers'));
+            exit;
+        }
+        
+        $employers_table = $wpdb->prefix . 'sleeve_employers';
+        $count = 0;
+        
+        foreach ($employer_ids as $employer_id) {
+            $employer = $wpdb->get_row($wpdb->prepare(
+                "SELECT user_id FROM {$employers_table} WHERE id = %d",
+                $employer_id
+            ));
+            
+            if (!$employer) continue;
+            
+            switch ( $action ) {
+                case 'approve':
+                case 'pending':
+                case 'suspend':
+                case 'deactivate':
+                    // Map bulk action to status
+                    $status_map = array(
+                        'approve' => 'approved',
+                        'pending' => 'pending',
+                        'suspend' => 'suspended',
+                        'deactivate' => 'inactive'
+                    );
+                    update_user_meta($employer->user_id, 'employer_status', $status_map[$action]);
+                    $count++;
+                    break;
+            }
+        }
+
         $message = '';
         switch ( $action ) {
             case 'approve':
-                $message = __( 'Employers approved successfully.', 'sleeve-ke' );
+                $message = sprintf(__( '%d employers approved successfully.', 'sleeve-ke' ), $count);
                 break;
             case 'pending':
-                $message = __( 'Employers set to pending review.', 'sleeve-ke' );
+                $message = sprintf(__( '%d employers set to pending review.', 'sleeve-ke' ), $count);
                 break;
             case 'suspend':
-                $message = __( 'Employers suspended.', 'sleeve-ke' );
+                $message = sprintf(__( '%d employers suspended.', 'sleeve-ke' ), $count);
                 break;
             case 'deactivate':
-                $message = __( 'Employers deactivated.', 'sleeve-ke' );
+                $message = sprintf(__( '%d employers deactivated.', 'sleeve-ke' ), $count);
                 break;
         }
 
-        if ( $message ) {
-            add_action( 'admin_notices', function() use ( $message ) {
-                echo '<div class="notice notice-success is-dismissible"><p>' . 
-                     esc_html( $message ) . 
-                     '</p></div>';
-            });
-        }
+        set_transient('sleeve_ke_bulk_action_message', $message, 60);
+        wp_safe_redirect(admin_url('admin.php?page=sleeve-ke-employers&bulk_action_done=1'));
+        exit;
     }
 
     /**
      * Handle AJAX request to update employer status
      */
     public function ajax_update_employer_status() {
+        global $wpdb;
+        
         // Check nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'update_employer_status' ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'sleeve-ke' ) ) );
@@ -751,8 +1165,19 @@ class Sleeve_KE_Employers {
             wp_send_json_error( array( 'message' => __( 'Invalid status', 'sleeve-ke' ) ) );
         }
         
-        // Here you would normally update the database
-        // For now, we'll just simulate success
+        // Get employer user_id
+        $employers_table = $wpdb->prefix . 'sleeve_employers';
+        $employer = $wpdb->get_row($wpdb->prepare(
+            "SELECT user_id FROM {$employers_table} WHERE id = %d",
+            $employer_id
+        ));
+        
+        if (!$employer) {
+            wp_send_json_error( array( 'message' => __( 'Employer not found', 'sleeve-ke' ) ) );
+        }
+        
+        // Update status in user meta
+        update_user_meta($employer->user_id, 'employer_status', $status);
         
         wp_send_json_success( array( 
             'message' => __( 'Employer status updated successfully', 'sleeve-ke' ),

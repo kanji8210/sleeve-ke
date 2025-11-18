@@ -176,7 +176,7 @@ class Sleeve_KE_Registration_Forms {
             <?php endif; ?>
 
             <?php if ( ! $success ) : ?>
-                <form method="post" action="" class="employer-registration-form" novalidate>
+                <form method="post" action="" class="employer-registration-form" enctype="multipart/form-data" novalidate>
                     <?php wp_nonce_field( 'sleeve_ke_register_employer', 'sleeve_employer_nonce' ); ?>
                     <input type="hidden" name="action" value="sleeve_ke_register_employer" />
                     <input type="hidden" name="redirect_url" value="<?php echo esc_attr( $atts['redirect_url'] ); ?>" />
@@ -276,6 +276,13 @@ class Sleeve_KE_Registration_Forms {
                             <label for="company_description"><?php esc_html_e( 'Company Description', 'sleeve-ke' ); ?></label>
                             <textarea id="company_description" name="description" rows="4" 
                                       class="form-control" placeholder="<?php esc_attr_e( 'Tell us about your company...', 'sleeve-ke' ); ?>"><?php echo esc_textarea( isset( $_POST['description'] ) ? $_POST['description'] : '' ); ?></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="company_logo"><?php esc_html_e( 'Company Logo', 'sleeve-ke' ); ?></label>
+                            <input type="file" id="company_logo" name="company_logo" 
+                                   class="form-control" accept="image/*" />
+                            <small class="form-text"><?php esc_html_e( 'Upload your company logo (JPG, PNG, max 2MB)', 'sleeve-ke' ); ?></small>
                         </div>
                     </div>
 
@@ -615,11 +622,21 @@ class Sleeve_KE_Registration_Forms {
      * Handle employer registration
      */
     private function handle_employer_registration() {
+        // Enable debug mode
+        $debug = defined('WP_DEBUG') && WP_DEBUG;
+        if ($debug) {
+            error_log('=== SLEEVE KE: Employer Registration Started ===');
+            error_log('POST data: ' . print_r($_POST, true));
+        }
+        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['sleeve_employer_nonce'], 'sleeve_ke_register_employer' ) ) {
+            if ($debug) error_log('ERROR: Nonce verification failed');
             $this->redirect_with_error( __( 'Security check failed. Please try again.', 'sleeve-ke' ) );
             return;
         }
+        
+        if ($debug) error_log('Nonce verified successfully');
 
         // Sanitize and validate data
         $username = sanitize_user( $_POST['username'] );
@@ -680,6 +697,18 @@ class Sleeve_KE_Registration_Forms {
             $errors[] = __( 'Contact person name is required.', 'sleeve-ke' );
         }
 
+        // Validate phone number (very flexible - just check it has some digits)
+        if ( ! empty( $phone ) ) {
+            // Remove all non-digit characters to count actual numbers
+            $phone_digits = preg_replace( '/[^0-9]/', '', $phone );
+            $digit_count = strlen( $phone_digits );
+            
+            // Just ensure there are at least 6 digits (very permissive)
+            if ( $digit_count < 6 ) {
+                $errors[] = __( 'Phone number must contain at least 6 digits.', 'sleeve-ke' );
+            }
+        }
+
         if ( ! $terms_accepted ) {
             $errors[] = __( 'You must accept the terms and conditions.', 'sleeve-ke' );
         }
@@ -690,29 +719,91 @@ class Sleeve_KE_Registration_Forms {
         }
 
         // Create user account
+        if ($debug) error_log('Creating WordPress user...');
         $user_id = wp_create_user( $username, $password, $email );
 
         if ( is_wp_error( $user_id ) ) {
+            if ($debug) error_log('ERROR creating user: ' . $user_id->get_error_message());
             $this->redirect_with_error( $user_id->get_error_message() );
             return;
         }
+        
+        if ($debug) error_log('User created successfully. User ID: ' . $user_id);
 
         // Set user role
         $user = new WP_User( $user_id );
         $user->set_role( 'employer' );
+        if ($debug) error_log('User role set to employer');
 
-        // Save employer meta data
-        update_user_meta( $user_id, 'company_name', $company_name );
-        update_user_meta( $user_id, 'industry', $industry );
-        update_user_meta( $user_id, 'company_size', $company_size );
-        update_user_meta( $user_id, 'location', $location );
-        update_user_meta( $user_id, 'website', $website );
-        update_user_meta( $user_id, 'description', $description );
-        update_user_meta( $user_id, 'contact_person', $contact_person );
-        update_user_meta( $user_id, 'phone', $phone );
+        // Set display name
+        wp_update_user(array(
+            'ID' => $user_id,
+            'display_name' => $contact_person
+        ));
+        if ($debug) error_log('Display name set to: ' . $contact_person);
+
+        // Handle logo upload
+        $logo_url = '';
+        if (!empty($_FILES['company_logo']['name'])) {
+            if ($debug) error_log('Processing logo upload...');
+            
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            
+            $upload_overrides = array('test_form' => false);
+            $movefile = wp_handle_upload($_FILES['company_logo'], $upload_overrides);
+            
+            if ($movefile && !isset($movefile['error'])) {
+                $logo_url = $movefile['url'];
+                if ($debug) error_log('Logo uploaded successfully: ' . $logo_url);
+            } else {
+                if ($debug) error_log('ERROR uploading logo: ' . ($movefile['error'] ?? 'Unknown error'));
+            }
+        }
+
+        // Save employer status in user meta
+        update_user_meta( $user_id, 'employer_status', 'pending' );
+        update_user_meta( $user_id, 'subscription_plan', 'free' );
         update_user_meta( $user_id, 'email_notifications', $email_notifications );
-        update_user_meta( $user_id, 'account_status', 'pending' );
         update_user_meta( $user_id, 'registration_date', current_time( 'mysql' ) );
+        if ($debug) error_log('User meta data saved');
+
+        // Insert into employers table
+        global $wpdb;
+        $employers_table = $wpdb->prefix . 'sleeve_employers';
+        
+        if ($debug) {
+            error_log('Inserting into table: ' . $employers_table);
+            error_log('Logo URL: ' . $logo_url);
+        }
+        
+        $insert_result = $wpdb->insert(
+            $employers_table,
+            array(
+                'user_id' => $user_id,
+                'company_name' => $company_name,
+                'company_description' => $description,
+                'company_logo' => $logo_url,
+                'phone' => $phone,
+                'website' => $website,
+                'location' => $location,
+                'industry' => $industry,
+                'company_size' => $company_size,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ),
+            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+        );
+        
+        if ($insert_result === false) {
+            if ($debug) {
+                error_log('ERROR inserting into employers table: ' . $wpdb->last_error);
+                error_log('Last query: ' . $wpdb->last_query);
+            }
+        } else {
+            if ($debug) error_log('Employer profile inserted successfully. Insert ID: ' . $wpdb->insert_id);
+        }
 
         // Send notification emails
         $this->send_employer_registration_notifications( $user_id, array(
@@ -724,11 +815,29 @@ class Sleeve_KE_Registration_Forms {
 
         // Trigger action for other plugins/integrations
         do_action( 'sleeve_ke_employer_registered', $user_id );
+        if ($debug) error_log('Action hook triggered: sleeve_ke_employer_registered');
 
-        // Redirect to success page
-        $redirect_url = ! empty( $_POST['redirect_url'] ) ? $_POST['redirect_url'] : $_SERVER['REQUEST_URI'];
-        $redirect_url = add_query_arg( 'employer_registered', 1, $redirect_url );
-        wp_redirect( $redirect_url );
+        // Auto-login the user
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id);
+        if ($debug) error_log('User logged in automatically');
+
+        // Redirect to employer profile page
+        $profile_page = get_page_by_path('employer-profile');
+        if ($profile_page) {
+            $redirect_url = get_permalink($profile_page->ID) . '?user_id=' . $user_id . '&registered=1';
+            if ($debug) error_log('Redirecting to profile: ' . $redirect_url);
+        } else {
+            // Fallback to employer dashboard if profile page not found
+            $redirect_url = admin_url('admin.php?page=sleeve-ke-employer-jobs&employer_registered=1');
+            if ($debug) error_log('Profile page not found, redirecting to dashboard: ' . $redirect_url);
+        }
+        
+        if ($debug) {
+            error_log('=== SLEEVE KE: Employer Registration Completed Successfully ===');
+        }
+        
+        wp_redirect($redirect_url);
         exit;
     }
 
@@ -798,6 +907,18 @@ class Sleeve_KE_Registration_Forms {
             $errors[] = __( 'Experience level is required.', 'sleeve-ke' );
         }
 
+        // Validate phone number (very flexible - just check it has some digits)
+        if ( ! empty( $phone ) ) {
+            // Remove all non-digit characters to count actual numbers
+            $phone_digits = preg_replace( '/[^0-9]/', '', $phone );
+            $digit_count = strlen( $phone_digits );
+            
+            // Just ensure there are at least 6 digits (very permissive)
+            if ( $digit_count < 6 ) {
+                $errors[] = __( 'Phone number must contain at least 6 digits.', 'sleeve-ke' );
+            }
+        }
+
         if ( ! $terms_accepted ) {
             $errors[] = __( 'You must accept the terms and conditions.', 'sleeve-ke' );
         }
@@ -827,17 +948,59 @@ class Sleeve_KE_Registration_Forms {
             'display_name' => $first_name . ' ' . $last_name
         ) );
 
-        // Save candidate meta data
-        update_user_meta( $user_id, 'phone', $phone );
-        update_user_meta( $user_id, 'location', $location );
+        // Save candidate data to wp_sleeve_candidates table
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sleeve_candidates';
+        
+        error_log('=== CANDIDATE REGISTRATION START ===');
+        error_log('User ID: ' . $user_id);
+        error_log('Phone: ' . $phone);
+        error_log('Location: ' . $location);
+        
+        // Convert experience level to years (estimate)
+        $experience_years = 0;
+        if ($experience_level === 'entry') {
+            $experience_years = 0;
+        } elseif ($experience_level === 'junior') {
+            $experience_years = 2;
+        } elseif ($experience_level === 'mid') {
+            $experience_years = 5;
+        } elseif ($experience_level === 'senior') {
+            $experience_years = 10;
+        } elseif ($experience_level === 'expert') {
+            $experience_years = 15;
+        }
+        
+        $candidate_data = array(
+            'user_id' => $user_id,
+            'phone' => $phone,
+            'location' => $location,
+            'experience_years' => $experience_years,
+            'education' => $desired_industry, // Using desired_industry as education placeholder
+            'skills' => $skills,
+            'resume_url' => null,
+            'linkedin_url' => null,
+            'portfolio_url' => null,
+            'availability' => 'available'
+        );
+        
+        error_log('Candidate Data: ' . print_r($candidate_data, true));
+        
+        $insert_result = $wpdb->insert($table_name, $candidate_data);
+        
+        if ($insert_result === false) {
+            error_log('FAILED to insert into wp_sleeve_candidates: ' . $wpdb->last_error);
+        } else {
+            error_log('Successfully inserted into wp_sleeve_candidates. Candidate ID: ' . $wpdb->insert_id);
+        }
+        
+        // Also save some data to user_meta for backward compatibility
         update_user_meta( $user_id, 'experience_level', $experience_level );
         update_user_meta( $user_id, 'desired_industry', $desired_industry );
-        update_user_meta( $user_id, 'skills', $skills );
         update_user_meta( $user_id, 'bio', $bio );
         update_user_meta( $user_id, 'job_alerts', $job_alerts );
         update_user_meta( $user_id, 'email_notifications', $email_notifications );
         update_user_meta( $user_id, 'account_status', 'active' );
-        update_user_meta( $user_id, 'registration_date', current_time( 'mysql' ) );
 
         // Send notification emails
         $this->send_candidate_registration_notifications( $user_id, array(
@@ -849,6 +1012,8 @@ class Sleeve_KE_Registration_Forms {
 
         // Trigger action for other plugins/integrations
         do_action( 'sleeve_ke_candidate_registered', $user_id );
+        
+        error_log('=== CANDIDATE REGISTRATION END ===');
 
         // Redirect to success page
         $redirect_url = ! empty( $_POST['redirect_url'] ) ? $_POST['redirect_url'] : $_SERVER['REQUEST_URI'];

@@ -226,11 +226,10 @@ class Sleeve_KE_Job_Display {
             </div>
 
             <div class="jobs-grid layout-<?php echo esc_attr( $atts['layout'] ); ?> columns-<?php echo esc_attr( $atts['columns'] ); ?>">
-                <?php if ( $jobs_query->have_posts() ) : ?>
-                    <?php while ( $jobs_query->have_posts() ) : $jobs_query->the_post(); ?>
-                        <?php $this->display_job_card( $atts ); ?>
-                    <?php endwhile; ?>
-                    <?php wp_reset_postdata(); ?>
+                <?php if ( ! empty( $jobs_query->jobs ) && $jobs_query->post_count > 0 ) : ?>
+                    <?php foreach ( $jobs_query->jobs as $job ) : ?>
+                        <?php $this->display_job_card( $atts, $job ); ?>
+                    <?php endforeach; ?>
                 <?php else : ?>
                     <div class="no-jobs-found">
                         <div class="no-jobs-icon">
@@ -420,19 +419,61 @@ class Sleeve_KE_Job_Display {
     /**
      * Display individual job card
      */
-    private function display_job_card( $atts ) {
-        global $post;
+    private function display_job_card( $atts, $job = null ) {
+        global $wpdb, $post;
         
-        // Get job meta data
-        $job_meta = get_post_meta( $post->ID );
-        $company_name = get_post_meta( $post->ID, 'company_name', true );
-        $location = get_post_meta( $post->ID, 'job_location', true );
-        $job_type = get_post_meta( $post->ID, 'job_type', true );
-        $salary = get_post_meta( $post->ID, 'salary_range', true );
-        $featured = get_post_meta( $post->ID, 'featured', true );
-        $company_logo = get_post_meta( $post->ID, 'company_logo', true );
-    $remote_work = get_post_meta( $post->ID, 'is_remote', true );
-        $experience_level = get_post_meta( $post->ID, 'experience_level', true );
+        // If no job data provided, try to get from post (backward compatibility)
+        if ( ! $job && isset( $post ) ) {
+            $job_meta = get_post_meta( $post->ID );
+            $job = array(
+                'id' => $post->ID,
+                'title' => get_the_title(),
+                'description' => get_the_excerpt(),
+                'location' => get_post_meta( $post->ID, 'job_location', true ),
+                'job_type' => get_post_meta( $post->ID, 'job_type', true ),
+                'salary_range' => get_post_meta( $post->ID, 'salary_range', true ),
+                'created_at' => get_the_time( 'Y-m-d H:i:s' ),
+                'employer_id' => $post->post_author
+            );
+            $company_name = get_post_meta( $post->ID, 'company_name', true );
+            $featured = get_post_meta( $post->ID, 'featured', true );
+            $company_logo = get_post_meta( $post->ID, 'company_logo', true );
+            $remote_work = get_post_meta( $post->ID, 'is_remote', true );
+            $experience_level = get_post_meta( $post->ID, 'experience_level', true );
+        } else {
+            // Get employer/company data
+            $employer_table = $wpdb->prefix . 'sleeve_employers';
+            $employer = $wpdb->get_row( $wpdb->prepare(
+                "SELECT company_name, company_logo FROM $employer_table WHERE user_id = %d",
+                $job['employer_id']
+            ), ARRAY_A );
+            
+            $company_name = $employer ? $employer['company_name'] : __( 'Company Name', 'sleeve-ke' );
+            $company_logo = $employer ? $employer['company_logo'] : '';
+            $featured = false;
+            $remote_work = 'no';
+            $experience_level = '';
+        }
+        
+        $job_classes = array( 'job-card' );
+        if ( $featured ) {
+            $job_classes[] = 'featured';
+        }
+        if ( $remote_work === 'yes' ) {
+            $job_classes[] = 'remote';
+        }
+        
+        
+        $job_id = isset( $job['id'] ) ? $job['id'] : ( isset( $post ) ? $post->ID : 0 );
+        $job_title = isset( $job['title'] ) ? $job['title'] : '';
+        $job_location = isset( $job['location'] ) ? $job['location'] : '';
+        $job_type = isset( $job['job_type'] ) ? $job['job_type'] : '';
+        $salary_range = isset( $job['salary_range'] ) ? $job['salary_range'] : '';
+        $description = isset( $job['description'] ) ? $job['description'] : '';
+        $created_at = isset( $job['created_at'] ) ? $job['created_at'] : '';
+        
+        // Build job URL
+        $job_url = admin_url( 'admin.php?page=sleeve-ke-jobs&action=view&id=' . $job_id );
         
         $job_classes = array( 'job-card' );
         if ( $featured ) {
@@ -443,33 +484,26 @@ class Sleeve_KE_Job_Display {
         }
         
         ?>
-        <div class="<?php echo implode( ' ', $job_classes ); ?>" data-job-id="<?php echo $post->ID; ?>">
+        <div class="<?php echo implode( ' ', $job_classes ); ?>" data-job-id="<?php echo esc_attr( $job_id ); ?>">
             <?php if ( $featured ) : ?>
                 <div class="featured-badge">
                     <span class="dashicons dashicons-star-filled"></span>
-                    <?php _e( 'En vedette', 'sleeve-ke' ); ?>
+                    <?php _e( 'Featured', 'sleeve-ke' ); ?>
                 </div>
             <?php endif; ?>
 
             <div class="job-header">
-                <?php
-                // Render company logo via helper if available
-                if ( isset( $this->thumbnails ) ) {
-                    echo $this->thumbnails->render_logo_html( $post->ID, $company_name, $atts['show_company_logo'] );
-                } else {
-                    if ( $atts['show_company_logo'] === 'true' && $company_logo ) : ?>
-                        <div class="company-logo">
-                            <img src="<?php echo esc_url( $company_logo ); ?>" 
-                                 alt="<?php echo esc_attr( $company_name ); ?>"
-                                 loading="lazy">
-                        </div>
-                    <?php endif; 
-                }
-                ?>
+                <?php if ( $atts['show_company_logo'] === 'true' && $company_logo ) : ?>
+                    <div class="company-logo">
+                        <img src="<?php echo esc_url( $company_logo ); ?>" 
+                             alt="<?php echo esc_attr( $company_name ); ?>"
+                             loading="lazy">
+                    </div>
+                <?php endif; ?>
                 
                 <div class="job-info">
                     <h3 class="job-title">
-                        <a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+                        <a href="<?php echo esc_url( $job_url ); ?>"><?php echo esc_html( $job_title ); ?></a>
                     </h3>
                     
                     <div class="company-name">
@@ -477,10 +511,10 @@ class Sleeve_KE_Job_Display {
                     </div>
                     
                     <div class="job-meta">
-                        <?php if ( $location ) : ?>
+                        <?php if ( $job_location ) : ?>
                             <span class="location">
                                 <span class="dashicons dashicons-location"></span>
-                                <?php echo esc_html( $location ); ?>
+                                <?php echo esc_html( $job_location ); ?>
                             </span>
                         <?php endif; ?>
                         
@@ -502,7 +536,7 @@ class Sleeve_KE_Job_Display {
 
             <div class="job-content">
                 <div class="job-excerpt">
-                    <?php echo wp_trim_words( get_the_excerpt(), 20, '...' ); ?>
+                    <?php echo wp_trim_words( wp_strip_all_tags( $description ), 20, '...' ); ?>
                 </div>
                 
                 <?php if ( $experience_level ) : ?>
@@ -515,17 +549,17 @@ class Sleeve_KE_Job_Display {
 
             <div class="job-footer">
                 <div class="job-details">
-                    <?php if ( $atts['show_salary'] === 'true' && $salary ) : ?>
+                    <?php if ( $atts['show_salary'] === 'true' && $salary_range ) : ?>
                         <span class="salary">
                             <span class="dashicons dashicons-money-alt"></span>
-                            <?php echo esc_html( $salary ); ?>
+                            <?php echo esc_html( $salary_range ); ?>
                         </span>
                     <?php endif; ?>
                     
-                    <?php if ( $atts['show_date'] === 'true' ) : ?>
+                    <?php if ( $atts['show_date'] === 'true' && $created_at ) : ?>
                         <span class="post-date">
                             <span class="dashicons dashicons-calendar-alt"></span>
-                            <?php echo human_time_diff( get_the_time( 'U' ), current_time( 'timestamp' ) ) . ' ago'; ?>
+                            <?php echo human_time_diff( strtotime( $created_at ), current_time( 'timestamp' ) ) . ' ago'; ?>
                         </span>
                     <?php endif; ?>
                 </div>
@@ -549,87 +583,81 @@ class Sleeve_KE_Job_Display {
      * Get jobs query
      */
     private function get_jobs_query( $atts, $paged = 1 ) {
-        $args = array(
-            'post_type' => 'job',
-            'post_status' => 'publish',
-            'posts_per_page' => $atts['posts_per_page'],
-            'paged' => $paged,
-            'orderby' => $atts['orderby'],
-            'order' => $atts['order'],
-            'meta_query' => array(),
-            'tax_query' => array()
-        );
-
-        // Debug: Log query args
-        error_log( 'Sleeve KE Jobs Query Args: ' . print_r( $args, true ) );
-
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'sleeve_jobs';
+        
+        // Build WHERE clause
+        $where = array( "status = 'published'" );
+        
         // Filter by job type
         if ( ! empty( $atts['job_type'] ) ) {
-            $args['meta_query'][] = array(
-                'key' => 'job_type',
-                'value' => $atts['job_type'],
-                'compare' => '='
-            );
+            $where[] = $wpdb->prepare( "job_type = %s", $atts['job_type'] );
         }
-
+        
         // Filter by location
         if ( ! empty( $atts['location'] ) ) {
-            $args['meta_query'][] = array(
-                'key' => 'job_location',
-                'value' => $atts['location'],
-                'compare' => 'LIKE'
-            );
+            $where[] = $wpdb->prepare( "location LIKE %s", '%' . $wpdb->esc_like( $atts['location'] ) . '%' );
         }
-
-        // Featured only
-        if ( $atts['featured_only'] === 'true' ) {
-            $args['meta_query'][] = array(
-                'key' => 'featured',
-                'value' => '1',
-                'compare' => '='
-            );
-        }
-
+        
         // Handle search parameters from GET/POST
         if ( isset( $_GET['keyword'] ) && ! empty( $_GET['keyword'] ) ) {
-            $args['s'] = sanitize_text_field( $_GET['keyword'] );
-        }
-
-        if ( isset( $_GET['location'] ) && ! empty( $_GET['location'] ) ) {
-            $args['meta_query'][] = array(
-                'key' => 'job_location',
-                'value' => sanitize_text_field( $_GET['location'] ),
-                'compare' => 'LIKE'
+            $keyword = sanitize_text_field( $_GET['keyword'] );
+            $where[] = $wpdb->prepare( 
+                "(title LIKE %s OR description LIKE %s OR requirements LIKE %s)", 
+                '%' . $wpdb->esc_like( $keyword ) . '%',
+                '%' . $wpdb->esc_like( $keyword ) . '%',
+                '%' . $wpdb->esc_like( $keyword ) . '%'
             );
         }
-
-        $query = new WP_Query( $args );
         
-        // Debug: Log query results
-        error_log( 'Sleeve KE Jobs Query Results: Found ' . $query->found_posts . ' posts' );
-        if ( $query->found_posts == 0 ) {
-            error_log( 'Sleeve KE Jobs Query SQL: ' . $query->request );
-            
-            // Debug: Check what post types exist
-            $post_types = get_post_types( array( 'public' => true ), 'names' );
-            error_log( 'Available post types: ' . print_r( $post_types, true ) );
-            
-            // Debug: Check if job post type is registered
-            if ( post_type_exists( 'job' ) ) {
-                error_log( 'Job post type exists' );
-            } else {
-                error_log( 'Job post type does NOT exist' );
-            }
-            
-            // Debug: Check for any posts of type job regardless of status
-            $all_jobs = get_posts( array(
-                'post_type' => 'job',
-                'post_status' => array( 'publish', 'private', 'draft' ),
-                'numberposts' => -1
-            ) );
-            error_log( 'Total jobs in database (any status): ' . count( $all_jobs ) );
+        if ( isset( $_GET['location'] ) && ! empty( $_GET['location'] ) ) {
+            $location = sanitize_text_field( $_GET['location'] );
+            $where[] = $wpdb->prepare( "location LIKE %s", '%' . $wpdb->esc_like( $location ) . '%' );
         }
-
+        
+        if ( isset( $_GET['job_type'] ) && ! empty( $_GET['job_type'] ) ) {
+            $job_type = sanitize_text_field( $_GET['job_type'] );
+            $where[] = $wpdb->prepare( "job_type = %s", $job_type );
+        }
+        
+        // Build ORDER BY clause
+        $orderby = 'created_at';
+        if ( $atts['orderby'] === 'title' ) {
+            $orderby = 'title';
+        } elseif ( $atts['orderby'] === 'modified' ) {
+            $orderby = 'updated_at';
+        }
+        $order = in_array( strtoupper( $atts['order'] ), array( 'ASC', 'DESC' ) ) ? strtoupper( $atts['order'] ) : 'DESC';
+        
+        // Calculate pagination
+        $offset = ( $paged - 1 ) * $atts['posts_per_page'];
+        $limit = $atts['posts_per_page'];
+        
+        // Build WHERE string
+        $where_sql = implode( ' AND ', $where );
+        
+        // Get total count
+        $total_query = "SELECT COUNT(*) FROM $table_name WHERE $where_sql";
+        $total_jobs = $wpdb->get_var( $total_query );
+        
+        // Get jobs with pagination
+        $jobs_query = "SELECT * FROM $table_name WHERE $where_sql ORDER BY $orderby $order LIMIT $limit OFFSET $offset";
+        $jobs = $wpdb->get_results( $jobs_query, ARRAY_A );
+        
+        // Debug logging
+        error_log( 'Sleeve KE Jobs Query: Found ' . $total_jobs . ' jobs' );
+        error_log( 'Sleeve KE Jobs SQL: ' . $jobs_query );
+        
+        // Create a pseudo WP_Query object for compatibility
+        $query = new stdClass();
+        $query->found_posts = $total_jobs;
+        $query->max_num_pages = ceil( $total_jobs / $atts['posts_per_page'] );
+        $query->jobs = $jobs;
+        $query->post_count = count( $jobs );
+        $query->current_post = -1;
+        $query->paged = $paged;
+        
         return $query;
     }
 

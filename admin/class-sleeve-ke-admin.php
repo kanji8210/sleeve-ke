@@ -97,7 +97,27 @@ class Sleeve_KE_Admin {
         if ( ! current_user_can( 'activate_plugins' ) ) {
             return;
         }
-        // First check for transient set by manual dashboard action
+        
+        // Check for activation success
+        if ( get_transient( 'sleeve_ke_activation_success' ) ) {
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p><strong>' . __( 'Sleeve KE Plugin Activated Successfully!', 'sleeve-ke' ) . '</strong></p>';
+            
+            // Show created tables if any
+            $created = get_transient( 'sleeve_ke_activation_tables' );
+            if ( ! empty( $created ) && is_array( $created ) ) {
+                $list = implode( ', ', array_map( 'esc_html', $created ) );
+                echo '<p>' . sprintf( __( 'Database tables created: %s', 'sleeve-ke' ), $list ) . '</p>';
+            }
+            
+            echo '</div>';
+            
+            // Remove transients so notice only shows once
+            delete_transient( 'sleeve_ke_activation_success' );
+            delete_transient( 'sleeve_ke_activation_tables' );
+        }
+        
+        // Check for manual table creation from dashboard
         $created = get_transient( 'sleeve_ke_last_created_tables' );
         if ( empty( $created ) ) {
             $created = get_option( 'sleeve_ke_created_tables', array() );
@@ -291,6 +311,16 @@ class Sleeve_KE_Admin {
                 'sleeve-ke-payments',
                 array( $this, 'display_payments' )
             );
+
+            // Verification submenu (hidden from menu, accessible via direct URL)
+            add_submenu_page(
+                null, // Hidden from menu
+                __( 'Activation Verification', 'sleeve-ke' ),
+                __( 'Verification', 'sleeve-ke' ),
+                'activate_plugins',
+                'sleeve-ke-verify-activation',
+                array( $this, 'display_verification' )
+            );
         }
 
         // Employer menu - limited access
@@ -318,9 +348,16 @@ class Sleeve_KE_Admin {
     }
 
     /**
-     * Display the dashboard page.
+     * Display the plugin dashboard.
      */
     public function display_dashboard() {
+        // Show success message if jobs were deleted
+        if (isset($_GET['sample_jobs_deleted'])) {
+            $count = intval($_GET['sample_jobs_deleted']);
+            echo '<div class="notice notice-success is-dismissible"><p>';
+            echo sprintf(__('%d sample/test job(s) deleted successfully!', 'sleeve-ke'), $count);
+            echo '</p></div>';
+        }
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -359,6 +396,23 @@ class Sleeve_KE_Admin {
                     }
                 }
                 ?>
+
+                <div style="margin-top:12px;padding:10px;background:#f0f6fc;border-left:4px solid #2271b1;">
+                    <h3><?php esc_html_e( 'Activation Verification', 'sleeve-ke' ); ?></h3>
+                    <p><?php esc_html_e( 'Verify that all roles, capabilities, and database tables were created correctly during plugin activation.', 'sleeve-ke' ); ?></p>
+                    <a href="<?php echo esc_url( admin_url('admin.php?page=sleeve-ke-verify-activation') ); ?>" class="button button-secondary">
+                        <?php esc_html_e( '🔍 Run Activation Check', 'sleeve-ke' ); ?>
+                    </a>
+                </div>
+
+                <div style="margin-top:12px;padding:10px;background:#fff3cd;border-left:4px solid #ff9900;">
+                    <h3><?php esc_html_e( 'Clean Up Test Jobs', 'sleeve-ke' ); ?></h3>
+                    <p><?php esc_html_e( 'Remove all sample/test jobs from the database. This will permanently delete jobs containing "Sample", "Test", or "SampleCo" patterns.', 'sleeve-ke' ); ?></p>
+                    <a href="<?php echo esc_url( SLEEVE_KE_PLUGIN_URL . 'tools/delete-sample-jobs.php' ); ?>" class="button button-secondary" target="_blank">
+                        <?php esc_html_e( '🗑️ Delete Sample Jobs', 'sleeve-ke' ); ?>
+                    </a>
+                </div>
+
                 <div class="sleeve-ke-stats">
                     <div class="stat-box">
                         <h3><?php esc_html_e( 'Total Applications', 'sleeve-ke' ); ?></h3>
@@ -516,6 +570,14 @@ class Sleeve_KE_Admin {
             <!-- Payments list table will be implemented here -->
         </div>
         <?php
+    }
+
+    /**
+     * Display the activation verification page.
+     */
+    public function display_verification() {
+        // Include the verification tool
+        require_once SLEEVE_KE_PLUGIN_DIR . 'tools/verify-activation.php';
     }
     
     /**

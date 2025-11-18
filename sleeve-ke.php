@@ -66,11 +66,13 @@ if ( ! is_admin() ) {
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-registration-forms.php';
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-display.php';
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-thumbnails.php';
+    require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-employer-profile.php';
     
     // Initialize frontend classes on init
     add_action( 'init', function() {
         new Sleeve_KE_Registration_Forms();
         new Sleeve_KE_Job_Display();
+        new Sleeve_KE_Employer_Profile();
         // Simple server-side display for debugging and verification (only if available)
         if ( class_exists( 'Sleeve_KE_Job_Display_Simple' ) ) {
             new Sleeve_KE_Job_Display_Simple();

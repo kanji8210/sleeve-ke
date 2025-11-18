@@ -25,7 +25,13 @@ class Sleeve_KE_Activator {
         
         // Create roles and database tables
         Sleeve_KE_Roles::create_roles();
-        Sleeve_KE_Database::create_tables();
+        $created_tables = Sleeve_KE_Database::create_tables();
+        
+        // Store activation info for admin notice
+        if (!empty($created_tables)) {
+            set_transient('sleeve_ke_activation_tables', $created_tables, 60);
+        }
+        set_transient('sleeve_ke_activation_success', true, 60);
         
         // Flush rewrite rules
         flush_rewrite_rules();

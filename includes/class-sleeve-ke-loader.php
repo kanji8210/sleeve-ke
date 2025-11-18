@@ -14,7 +14,8 @@
  * run function to execute the list of actions and filters.
  */
 class Sleeve_KE_Loader {
-
+    
+//
     /**
      * The array of actions registered with WordPress.
      */
@@ -85,4 +86,5 @@ class Sleeve_KE_Loader {
             );
         }
     }
+    
 }

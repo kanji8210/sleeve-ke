@@ -14,11 +14,53 @@ class Sleeve_KE_Job_Form_Handler {
     /**
      * Display the job form (shared between add and edit)
      */
-    public function display_job_form($job = null) {
+    public function display_job_form($job = null, $page_slug = 'sleeve-ke-jobs') {
+        global $wpdb;
+        
         $is_edit = !is_null($job);
         $form_title = $is_edit ? __('Edit Job', 'sleeve-ke') : __('Add New Job', 'sleeve-ke');
         $action = $is_edit ? 'update' : 'create';
         $job_id = $is_edit ? $job['id'] : 0;
+        
+        // Check if current user is an employer and get their details
+        $current_user = wp_get_current_user();
+        $is_employer = in_array('employer', $current_user->roles);
+        $is_admin = current_user_can('manage_options');
+        $employer_data = null;
+        $all_employers = array();
+        
+        if ($is_employer) {
+            $employers_table = $wpdb->prefix . 'sleeve_employers';
+            $employer_data = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $employers_table WHERE user_id = %d",
+                $current_user->ID
+            ), ARRAY_A);
+            
+            // Auto-fill employer data for new jobs
+            if (!$is_edit && $employer_data) {
+                if (empty($job['company'])) {
+                    $job['company'] = $employer_data['company_name'];
+                }
+                if (empty($job['location'])) {
+                    $job['location'] = $employer_data['location'];
+                }
+                if (empty($job['sector'])) {
+                    $job['sector'] = $employer_data['industry'];
+                }
+            }
+        }
+        
+        // Get all employers for admin selector
+        if ($is_admin && !$is_employer) {
+            $employers_table = $wpdb->prefix . 'sleeve_employers';
+            $all_employers = $wpdb->get_results(
+                "SELECT e.*, u.display_name, u.user_email 
+                FROM $employers_table e 
+                LEFT JOIN {$wpdb->users} u ON e.user_id = u.ID 
+                ORDER BY e.company_name ASC",
+                ARRAY_A
+            );
+        }
         
         // Get form data from transient if available
         $form_data = get_transient('sleeve_ke_job_form_data');
@@ -30,9 +72,19 @@ class Sleeve_KE_Job_Form_Handler {
         <div class="wrap sleeve-ke-job-form-wrap">
             <h1><?php echo esc_html($form_title); ?></h1>
             
+            <!-- Info message for employers -->
+            <?php if ($is_employer && $employer_data && !$is_edit) : ?>
+                <div class="notice notice-info">
+                    <p>
+                        <strong><?php esc_html_e('Good news!', 'sleeve-ke'); ?></strong>
+                        <?php esc_html_e('Your company details have been automatically filled from your profile. You can focus on the job specifics.', 'sleeve-ke'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
             <!-- Back button -->
             <p>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sleeve-ke-jobs')); ?>" class="button">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=' . $page_slug)); ?>" class="button">
                     &larr; <?php esc_html_e('Back to Jobs', 'sleeve-ke'); ?>
                 </a>
             </p>
@@ -126,16 +178,47 @@ class Sleeve_KE_Job_Form_Handler {
                                 </select>
                             </div>
 
+                            <!-- Company Selector (Admin Only) -->
+                            <?php if ($is_admin && !$is_employer && !empty($all_employers)) : ?>
+                            <div class="form-field">
+                                <label for="employer_selector"><?php esc_html_e('Select Existing Company', 'sleeve-ke'); ?></label>
+                                <select id="employer_selector" class="regular-text">
+                                    <option value=""><?php esc_html_e('-- Select a company or enter manually below --', 'sleeve-ke'); ?></option>
+                                    <?php foreach ($all_employers as $emp) : ?>
+                                        <option value="<?php echo esc_attr($emp['id']); ?>" 
+                                                data-company="<?php echo esc_attr($emp['company_name']); ?>"
+                                                data-location="<?php echo esc_attr($emp['location']); ?>"
+                                                data-industry="<?php echo esc_attr($emp['industry']); ?>"
+                                                data-employer-id="<?php echo esc_attr($emp['user_id']); ?>">
+                                            <?php echo esc_html($emp['company_name']); ?>
+                                            <?php if (!empty($emp['location'])) : ?>
+                                                - <?php echo esc_html($emp['location']); ?>
+                                            <?php endif; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description"><?php esc_html_e('Choose from existing companies to auto-fill details', 'sleeve-ke'); ?></p>
+                            </div>
+                            <?php endif; ?>
+
                             <!-- Company -->
                             <div class="form-field">
                                 <label for="company"><?php esc_html_e('Company *', 'sleeve-ke'); ?></label>
-                                <input type="text" id="company" name="company" value="<?php echo esc_attr($job['company'] ?? ''); ?>" required class="regular-text">
+                                <input type="text" id="company" name="company" 
+                                       value="<?php echo esc_attr($job['company'] ?? ''); ?>" 
+                                       required class="regular-text"
+                                       <?php echo $is_employer && $employer_data ? 'readonly' : ''; ?>>
+                                <?php if ($is_employer && $employer_data) : ?>
+                                    <p class="description"><?php esc_html_e('Company name from your profile', 'sleeve-ke'); ?></p>
+                                <?php elseif ($is_admin && !$is_employer) : ?>
+                                    <p class="description"><?php esc_html_e('Select from dropdown above or enter manually', 'sleeve-ke'); ?></p>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Sector -->
                             <div class="form-field">
                                 <label for="sector"><?php esc_html_e('Sector *', 'sleeve-ke'); ?></label>
-                                <select id="sector" name="sector" required>
+                                <select id="sector" name="sector" required <?php echo $is_employer && $employer_data ? 'disabled' : ''; ?>>
                                     <option value=""><?php esc_html_e('Select Sector', 'sleeve-ke'); ?></option>
                                     <?php
                                     $sectors = $this->get_sectors();
@@ -147,13 +230,27 @@ class Sleeve_KE_Job_Form_Handler {
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <?php if ($is_employer && $employer_data) : ?>
+                                    <input type="hidden" name="sector" value="<?php echo esc_attr($current_sector); ?>">
+                                    <p class="description"><?php esc_html_e('Industry from your profile', 'sleeve-ke'); ?></p>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Location -->
                             <div class="form-field">
                                 <label for="location"><?php esc_html_e('Location *', 'sleeve-ke'); ?></label>
-                                <input type="text" id="location" name="location" value="<?php echo esc_attr($job['location'] ?? ''); ?>" required class="regular-text">
-                                <p class="description"><?php esc_html_e('City, Country (e.g., Nairobi, Kenya)', 'sleeve-ke'); ?></p>
+                                <input type="text" id="location" name="location" 
+                                       value="<?php echo esc_attr($job['location'] ?? ''); ?>" 
+                                       required class="regular-text">
+                                <p class="description">
+                                    <?php 
+                                    if ($is_employer && $employer_data && !empty($employer_data['location'])) {
+                                        esc_html_e('Pre-filled from your profile. You can modify if needed.', 'sleeve-ke');
+                                    } else {
+                                        esc_html_e('City, Country (e.g., Nairobi, Kenya)', 'sleeve-ke');
+                                    }
+                                    ?>
+                                </p>
                             </div>
 
                             <!-- Job Type -->
@@ -266,6 +363,39 @@ class Sleeve_KE_Job_Form_Handler {
                 </div>
             </form>
         </div>
+        
+        <?php if ($is_admin && !$is_employer && !empty($all_employers)) : ?>
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $('#employer_selector').on('change', function() {
+                var selected = $(this).find('option:selected');
+                
+                if (selected.val()) {
+                    // Auto-fill company details
+                    var companyName = selected.data('company');
+                    var location = selected.data('location');
+                    var industry = selected.data('industry');
+                    
+                    // Fill the fields
+                    $('#company').val(companyName);
+                    $('#location').val(location);
+                    $('#sector').val(industry);
+                    
+                    // Visual feedback
+                    $('#company, #location, #sector').css('background-color', '#e7f7e7').delay(1000).queue(function(){
+                        $(this).css('background-color', '').dequeue();
+                    });
+                    
+                    console.log('Auto-filled company details:', {
+                        company: companyName,
+                        location: location,
+                        sector: industry
+                    });
+                }
+            });
+        });
+        </script>
+        <?php endif; ?>
         <?php
     }
 

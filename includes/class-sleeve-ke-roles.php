@@ -6,6 +6,8 @@
  */
 
 class Sleeve_KE_Roles {
+    //debug roles creator looded
+    
     
     /**
      * Create custom user roles for the plugin
