@@ -315,7 +315,7 @@ Actions Available:
 
 Example:
 Create a page called "My Applications" (slug: employer-applications) and add:
-[sleeve_ke_employer_applications]
+
 
 Notes:
 - Requires user to be logged in as employer
