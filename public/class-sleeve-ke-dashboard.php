@@ -49,80 +49,187 @@ class Sleeve_KE_Dashboard {
         ?>
         <div class="sleeve-ke-dashboard-login-prompt">
             <div class="login-prompt-card">
+                <div class="prompt-icon">🔐</div>
                 <h2><?php _e( 'Welcome to Sleeve KE', 'sleeve-ke' ); ?></h2>
-                <p><?php _e( 'Please log in to access your dashboard.', 'sleeve-ke' ); ?></p>
+                <p class="main-message"><?php _e( 'Please login or register to view your dashboard', 'sleeve-ke' ); ?></p>
                 
                 <div class="login-actions">
-                    <a href="<?php echo wp_login_url( get_permalink() ); ?>" class="btn btn-primary">
-                        <?php _e( 'Log In', 'sleeve-ke' ); ?>
+                    <a href="<?php echo wp_login_url( get_permalink() ); ?>" class="btn btn-primary btn-large">
+                        <span class="btn-icon">🔓</span>
+                        <span class="btn-label"><?php _e( 'Log In', 'sleeve-ke' ); ?></span>
                     </a>
                 </div>
                 
+                <div class="divider">
+                    <span><?php _e( 'OR', 'sleeve-ke' ); ?></span>
+                </div>
+                
                 <div class="register-links">
-                    <p><?php _e( "Don't have an account?", 'sleeve-ke' ); ?></p>
-                    <a href="<?php echo home_url( '/employer-registration' ); ?>" class="btn btn-secondary">
-                        <?php _e( 'Register as Employer', 'sleeve-ke' ); ?>
-                    </a>
-                    <a href="<?php echo home_url( '/candidate-registration' ); ?>" class="btn btn-secondary">
-                        <?php _e( 'Register as Candidate', 'sleeve-ke' ); ?>
-                    </a>
+                    <p class="register-title"><?php _e( "New to Sleeve KE? Create an account:", 'sleeve-ke' ); ?></p>
+                    <div class="register-buttons">
+                        <a href="<?php echo home_url( '/employer-registration' ); ?>" class="btn btn-secondary btn-register">
+                            <span class="btn-icon">🏢</span>
+                            <div class="btn-content">
+                                <span class="btn-label"><?php _e( 'Register as Employer', 'sleeve-ke' ); ?></span>
+                                <span class="btn-desc"><?php _e( 'Post jobs & hire talent', 'sleeve-ke' ); ?></span>
+                            </div>
+                        </a>
+                        <a href="<?php echo home_url( '/candidate-registration' ); ?>" class="btn btn-secondary btn-register">
+                            <span class="btn-icon">👤</span>
+                            <div class="btn-content">
+                                <span class="btn-label"><?php _e( 'Register as Candidate', 'sleeve-ke' ); ?></span>
+                                <span class="btn-desc"><?php _e( 'Find your dream job', 'sleeve-ke' ); ?></span>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
         <style>
         .sleeve-ke-dashboard-login-prompt {
-            max-width: 500px;
+            max-width: 600px;
             margin: 50px auto;
             padding: 20px;
         }
         .login-prompt-card {
             background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 50px 40px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .prompt-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
         }
         .login-prompt-card h2 {
             margin: 0 0 15px 0;
             color: #2271b1;
+            font-size: 28px;
         }
-        .login-prompt-card p {
-            color: #666;
-            margin-bottom: 25px;
+        .main-message {
+            color: #444;
+            font-size: 16px;
+            margin-bottom: 30px;
+            font-weight: 500;
         }
         .login-actions {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             padding: 12px 30px;
-            border-radius: 4px;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s;
             margin: 5px;
+            border: 2px solid transparent;
+        }
+        .btn-large {
+            padding: 16px 40px;
+            font-size: 16px;
+            min-width: 200px;
+        }
+        .btn-icon {
+            font-size: 20px;
         }
         .btn-primary {
             background: #2271b1;
             color: #fff;
+            border-color: #2271b1;
         }
         .btn-primary:hover {
             background: #135e96;
+            border-color: #135e96;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34,113,177,0.3);
         }
-        .btn-secondary {
-            background: #f0f0f1;
-            color: #2c3338;
-            border: 1px solid #ddd;
+        .divider {
+            margin: 30px 0;
+            position: relative;
         }
-        .btn-secondary:hover {
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
             background: #ddd;
         }
-        .register-links p {
-            margin: 20px 0 10px 0;
+        .divider span {
+            background: #fff;
+            padding: 0 15px;
+            position: relative;
+            color: #999;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .register-links {
+            margin-top: 30px;
+        }
+        .register-title {
+            margin: 0 0 20px 0;
             color: #666;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .register-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .btn-register {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 15px;
+            background: #f8f9fa;
+            color: #2c3338;
+            border: 2px solid #e0e0e0;
+            min-height: 120px;
+            justify-content: center;
+        }
+        .btn-register:hover {
+            background: #fff;
+            border-color: #2271b1;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .btn-register .btn-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .btn-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .btn-label {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2c3338;
+            margin-bottom: 5px;
+        }
+        .btn-desc {
+            font-size: 12px;
+            color: #666;
+            font-weight: 400;
+        }
+        @media (max-width: 600px) {
+            .register-buttons {
+                grid-template-columns: 1fr;
+            }
+            .login-prompt-card {
+                padding: 30px 20px;
+            }
         }
         </style>
         <?php
