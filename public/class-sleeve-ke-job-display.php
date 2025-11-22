@@ -305,7 +305,7 @@ class Sleeve_KE_Job_Display {
                         <input type="text" 
                                id="job-keyword" 
                                name="keyword" 
-                               placeholder="<?php _e( 'Titre du poste, entreprise...', 'sleeve-ke' ); ?>"
+                               placeholder="<?php _e( 'Job title, company...', 'sleeve-ke' ); ?>"
                                value="<?php echo esc_attr( isset( $_GET['keyword'] ) ? $_GET['keyword'] : '' ); ?>">
                     </div>
                     
@@ -342,7 +342,7 @@ class Sleeve_KE_Job_Display {
             <div class="filters-toggle">
                 <button class="toggle-filters-btn">
                     <span class="dashicons dashicons-filter"></span>
-                    <?php _e( 'Filtres', 'sleeve-ke' ); ?>
+                    <?php _e( 'Filters', 'sleeve-ke' ); ?>
                 </button>
             </div>
             
@@ -355,7 +355,7 @@ class Sleeve_KE_Job_Display {
                         <option value="part-time"><?php _e( 'Part-time', 'sleeve-ke' ); ?></option>
                         <option value="contract"><?php _e( 'Contract', 'sleeve-ke' ); ?></option>
                         <option value="freelance"><?php _e( 'Freelance', 'sleeve-ke' ); ?></option>
-                        <option value="internship"><?php _e( 'Stage', 'sleeve-ke' ); ?></option>
+                        <option value="internship"><?php _e( 'Internship', 'sleeve-ke' ); ?></option>
                     </select>
                 </div>
 
@@ -566,7 +566,7 @@ class Sleeve_KE_Job_Display {
                 
                 <div class="job-actions">
                     <a href="<?php the_permalink(); ?>" class="btn btn-primary view-job">
-                        <?php _e( 'View Job', 'sleeve-ke' ); ?>
+                        <?php _e( 'View', 'sleeve-ke' ); ?>
                     </a>
                     
                     <button class="btn btn-secondary save-job" data-job-id="<?php echo $post->ID; ?>">
@@ -832,11 +832,11 @@ class Sleeve_KE_Job_Display {
      */
     private function get_job_type_label( $job_type ) {
         $labels = array(
-            'full-time' => __( 'Temps plein', 'sleeve-ke' ),
-            'part-time' => __( 'Temps partiel', 'sleeve-ke' ),
-            'contract' => __( 'Contrat', 'sleeve-ke' ),
+            'full-time' => __( 'Full-time', 'sleeve-ke' ),
+            'part-time' => __( 'Part-time', 'sleeve-ke' ),
+            'contract' => __( 'Contract', 'sleeve-ke' ),
             'freelance' => __( 'Freelance', 'sleeve-ke' ),
-            'internship' => __( 'Stage', 'sleeve-ke' )
+            'internship' => __( 'Internship', 'sleeve-ke' )
         );
 
         return isset( $labels[$job_type] ) ? $labels[$job_type] : $job_type;
