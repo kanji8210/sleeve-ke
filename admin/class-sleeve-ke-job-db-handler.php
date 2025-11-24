@@ -154,7 +154,12 @@ class Sleeve_KE_Job_DB_Handler {
         $result = $wpdb->insert($this->table_name, $data);
 
         if ($result) {
-            return $wpdb->insert_id;
+            $job_id = $wpdb->insert_id;
+            
+            // Create corresponding WordPress CPT
+            $this->sync_job_to_cpt($job_id, $data);
+            
+            return $job_id;
         }
 
         return false;
@@ -173,6 +178,14 @@ class Sleeve_KE_Job_DB_Handler {
             $data,
             array('id' => $job_id)
         );
+
+        if ($result !== false) {
+            // Update corresponding WordPress CPT
+            $full_job_data = $this->get_job_by_id($job_id);
+            if ($full_job_data) {
+                $this->sync_job_to_cpt($job_id, $full_job_data);
+            }
+        }
 
         return $result !== false;
     }
@@ -236,5 +249,65 @@ class Sleeve_KE_Job_DB_Handler {
             array('count' => intval($stats['closed'] ?? 0), 'label' => __('Closed', 'sleeve-ke')),
             array('count' => intval($stats['expired'] ?? 0), 'label' => __('Expired', 'sleeve-ke'))
         );
+    }
+
+    /**
+     * Sync job from custom table to WordPress CPT
+     */
+    private function sync_job_to_cpt($job_id, $job_data) {
+        // Check if CPT already exists with this job_id
+        $existing_posts = get_posts(array(
+            'post_type' => 'job',
+            'meta_key' => '_sleeve_job_id',
+            'meta_value' => $job_id,
+            'posts_per_page' => 1,
+            'post_status' => 'any'
+        ));
+
+        $post_status = 'publish';
+        if (isset($job_data['status'])) {
+            $status_map = array(
+                'active' => 'publish',
+                'draft' => 'draft',
+                'closed' => 'private',
+                'expired' => 'private'
+            );
+            $post_status = $status_map[$job_data['status']] ?? 'publish';
+        }
+
+        $post_data = array(
+            'post_title' => $job_data['title'],
+            'post_content' => $job_data['description'],
+            'post_excerpt' => wp_trim_words($job_data['description'], 30),
+            'post_status' => $post_status,
+            'post_type' => 'job',
+            'post_author' => $job_data['employer_id']
+        );
+
+        if (!empty($existing_posts)) {
+            // Update existing post
+            $post_data['ID'] = $existing_posts[0]->ID;
+            wp_update_post($post_data);
+            $post_id = $existing_posts[0]->ID;
+        } else {
+            // Create new post
+            $post_id = wp_insert_post($post_data);
+            
+            if ($post_id && !is_wp_error($post_id)) {
+                // Store reference to custom table job_id
+                update_post_meta($post_id, '_sleeve_job_id', $job_id);
+            }
+        }
+
+        // Update post meta with job details
+        if ($post_id && !is_wp_error($post_id)) {
+            update_post_meta($post_id, 'job_location', $job_data['location']);
+            update_post_meta($post_id, 'job_type', $job_data['job_type']);
+            update_post_meta($post_id, 'salary_range', $job_data['salary_range'] ?? '');
+            update_post_meta($post_id, 'company', $job_data['company']);
+            update_post_meta($post_id, 'sector', $job_data['sector']);
+        }
+
+        return $post_id;
     }
 }

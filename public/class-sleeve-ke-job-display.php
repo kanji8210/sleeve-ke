@@ -40,6 +40,12 @@ class Sleeve_KE_Job_Display {
         // Handle job save/unsave AJAX requests
         add_action( 'wp_ajax_sleeve_ke_save_job', array( $this, 'ajax_save_job' ) );
         add_action( 'wp_ajax_sleeve_ke_unsave_job', array( $this, 'ajax_unsave_job' ) );
+        
+        // Handle job application submission
+        add_action( 'wp_ajax_sleeve_ke_submit_application', array( $this, 'ajax_submit_application' ) );
+        
+        // Load custom single job template
+        add_filter( 'single_template', array( $this, 'load_single_job_template' ) );
 
         // Load thumbnails helper
         if ( file_exists( SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-job-thumbnails.php' ) ) {
@@ -946,5 +952,125 @@ class Sleeve_KE_Job_Display {
             error_log( 'Sleeve KE: No saved jobs found for user: ' . $user_id );
             wp_send_json_success( array( 'message' => __( 'Job was not in saved jobs', 'sleeve-ke' ) ) );
         }
+    }
+
+    /**
+     * Load custom single job template
+     */
+    public function load_single_job_template( $template ) {
+        if ( is_singular( 'job' ) ) {
+            $custom_template = SLEEVE_KE_PLUGIN_DIR . 'templates/single-job.php';
+            if ( file_exists( $custom_template ) ) {
+                return $custom_template;
+            }
+        }
+        return $template;
+    }
+
+    /**
+     * AJAX handler for job application submission
+     */
+    public function ajax_submit_application() {
+        // Verify nonce
+        if ( ! isset( $_POST['application_nonce'] ) || ! wp_verify_nonce( $_POST['application_nonce'], 'sleeve_ke_apply_job' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sleeve-ke' ) ) );
+        }
+
+        // Check if user is logged in and is a candidate
+        if ( ! is_user_logged_in() ) {
+            wp_send_json_error( array( 'message' => __( 'You must be logged in to apply', 'sleeve-ke' ) ) );
+        }
+
+        $current_user = wp_get_current_user();
+        if ( ! in_array( 'candidate', $current_user->roles ) ) {
+            wp_send_json_error( array( 'message' => __( 'Only candidates can apply for jobs', 'sleeve-ke' ) ) );
+        }
+
+        // Validate inputs
+        $job_id = intval( $_POST['job_id'] );
+        $cover_letter = sanitize_textarea_field( $_POST['cover_letter'] );
+
+        if ( ! $job_id || empty( $cover_letter ) ) {
+            wp_send_json_error( array( 'message' => __( 'Please fill in all required fields', 'sleeve-ke' ) ) );
+        }
+
+        // Check if already applied
+        global $wpdb;
+        $applications_table = $wpdb->prefix . 'sleeve_applications';
+        $existing_application = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM $applications_table WHERE job_id = %d AND candidate_id = %d",
+            $job_id,
+            $current_user->ID
+        ) );
+
+        if ( $existing_application > 0 ) {
+            wp_send_json_error( array( 'message' => __( 'You have already applied for this job', 'sleeve-ke' ) ) );
+        }
+
+        // Handle file upload
+        $resume_url = '';
+        if ( isset( $_FILES['resume_file'] ) && $_FILES['resume_file']['error'] === UPLOAD_ERR_OK ) {
+            $file = $_FILES['resume_file'];
+            
+            // Validate file type
+            $allowed_types = array( 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' );
+            $file_type = wp_check_filetype( $file['name'] );
+            
+            if ( ! in_array( $file['type'], $allowed_types ) ) {
+                wp_send_json_error( array( 'message' => __( 'Invalid file type. Only PDF, DOC, and DOCX files are allowed', 'sleeve-ke' ) ) );
+            }
+
+            // Validate file size (5MB max)
+            if ( $file['size'] > 5 * 1024 * 1024 ) {
+                wp_send_json_error( array( 'message' => __( 'File size must be less than 5MB', 'sleeve-ke' ) ) );
+            }
+
+            // Upload file
+            require_once( ABSPATH . 'wp-admin/includes/file.php' );
+            
+            $upload_overrides = array(
+                'test_form' => false,
+                'unique_filename_callback' => function( $dir, $name, $ext ) use ( $current_user, $job_id ) {
+                    return 'resume_' . $current_user->ID . '_job_' . $job_id . '_' . time() . $ext;
+                }
+            );
+            
+            $uploaded_file = wp_handle_upload( $file, $upload_overrides );
+            
+            if ( isset( $uploaded_file['error'] ) ) {
+                wp_send_json_error( array( 'message' => __( 'File upload failed: ', 'sleeve-ke' ) . $uploaded_file['error'] ) ) );
+            }
+            
+            $resume_url = $uploaded_file['url'];
+        } else {
+            wp_send_json_error( array( 'message' => __( 'Resume file is required', 'sleeve-ke' ) ) );
+        }
+
+        // Insert application
+        $result = $wpdb->insert(
+            $applications_table,
+            array(
+                'job_id' => $job_id,
+                'candidate_id' => $current_user->ID,
+                'cover_letter' => $cover_letter,
+                'resume_url' => $resume_url,
+                'status' => 'pending',
+                'applied_at' => current_time( 'mysql' ),
+                'updated_at' => current_time( 'mysql' )
+            ),
+            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
+        );
+
+        if ( $result === false ) {
+            wp_send_json_error( array( 'message' => __( 'Failed to submit application. Please try again', 'sleeve-ke' ) ) );
+        }
+
+        // Trigger notification hook
+        $application_id = $wpdb->insert_id;
+        do_action( 'sleeve_ke_new_application_submitted', $application_id );
+
+        wp_send_json_success( array( 
+            'message' => __( 'Application submitted successfully! The employer will review your application soon.', 'sleeve-ke' )
+        ) );
     }
 }
