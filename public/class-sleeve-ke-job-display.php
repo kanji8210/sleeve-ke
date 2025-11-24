@@ -1036,10 +1036,12 @@ class Sleeve_KE_Job_Display {
             );
             
             $uploaded_file = wp_handle_upload( $file, $upload_overrides );
+        
             
             if ( isset( $uploaded_file['error'] ) ) {
-                wp_send_json_error( array( 'message' => __( 'File upload failed: ', 'sleeve-ke' ) . $uploaded_file['error'] ) ) );
+                wp_send_json_error( array( 'message' => __( 'File upload failed: ', 'sleeve-ke' ) . $uploaded_file['error'] ) );
             }
+        
             
             $resume_url = $uploaded_file['url'];
         } else {
