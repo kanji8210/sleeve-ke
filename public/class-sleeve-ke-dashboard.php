@@ -45,6 +45,22 @@ class Sleeve_KE_Dashboard {
      * Render login prompt for non-logged-in users
      */
     private function render_login_prompt() {
+        // Get page URLs from settings
+        $login_page = get_option( 'sleeve_ke_login_page' );
+        $employer_page = get_option( 'sleeve_ke_employer_registration_page' );
+        $candidate_page = get_option( 'sleeve_ke_candidate_registration_page' );
+        $custom_login_enabled = get_option( 'sleeve_ke_custom_login_enabled', false );
+        
+        // Build URLs with fallbacks
+        if ( $custom_login_enabled && $login_page ) {
+            $login_url = get_permalink( $login_page );
+        } else {
+            $login_url = wp_login_url( get_permalink() );
+        }
+        
+        $employer_url = $employer_page ? get_permalink( $employer_page ) : home_url( '/employer-registration' );
+        $candidate_url = $candidate_page ? get_permalink( $candidate_page ) : home_url( '/candidate-registration' );
+        
         ob_start();
         ?>
         <div class="sleeve-ke-dashboard-login-prompt">
@@ -54,7 +70,7 @@ class Sleeve_KE_Dashboard {
                 <p class="main-message"><?php _e( 'Please login or register to view your dashboard', 'sleeve-ke' ); ?></p>
                 
                 <div class="login-actions">
-                    <a href="<?php echo wp_login_url( get_permalink() ); ?>" class="btn btn-primary btn-large">
+                    <a href="<?php echo esc_url( $login_url ); ?>" class="btn btn-primary btn-large">
                         <span class="btn-icon">🔓</span>
                         <span class="btn-label"><?php _e( 'Log In', 'sleeve-ke' ); ?></span>
                     </a>
@@ -67,14 +83,14 @@ class Sleeve_KE_Dashboard {
                 <div class="register-links">
                     <p class="register-title"><?php _e( "New to Sleeve KE? Create an account:", 'sleeve-ke' ); ?></p>
                     <div class="register-buttons">
-                        <a href="<?php echo home_url( '/employer-registration' ); ?>" class="btn btn-secondary btn-register">
+                        <a href="<?php echo esc_url( $employer_url ); ?>" class="btn btn-secondary btn-register">
                             <span class="btn-icon">🏢</span>
                             <div class="btn-content">
                                 <span class="btn-label"><?php _e( 'Register as Employer', 'sleeve-ke' ); ?></span>
                                 <span class="btn-desc"><?php _e( 'Post jobs & hire talent', 'sleeve-ke' ); ?></span>
                             </div>
                         </a>
-                        <a href="<?php echo home_url( '/candidate-registration' ); ?>" class="btn btn-secondary btn-register">
+                        <a href="<?php echo esc_url( $candidate_url ); ?>" class="btn btn-secondary btn-register">
                             <span class="btn-icon">👤</span>
                             <div class="btn-content">
                                 <span class="btn-label"><?php _e( 'Register as Candidate', 'sleeve-ke' ); ?></span>

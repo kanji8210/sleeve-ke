@@ -60,6 +60,16 @@ register_deactivation_hook( __FILE__, 'deactivate_sleeve_ke' );
 require SLEEVE_KE_PLUGIN_DIR . 'includes/class-sleeve-ke.php';
 
 /**
+ * Load settings page.
+ */
+if ( is_admin() ) {
+    require_once SLEEVE_KE_PLUGIN_DIR . 'admin/class-sleeve-ke-settings.php';
+    add_action( 'init', function() {
+        new Sleeve_KE_Settings();
+    } );
+}
+
+/**
  * Load frontend registration forms class.
  */
 if ( ! is_admin() ) {
@@ -69,6 +79,7 @@ if ( ! is_admin() ) {
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-employer-profile.php';
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-employer-applications.php';
     require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-dashboard.php';
+    require_once SLEEVE_KE_PLUGIN_DIR . 'public/class-sleeve-ke-login.php';
     
     // Initialize frontend classes on init
     add_action( 'init', function() {
@@ -77,6 +88,7 @@ if ( ! is_admin() ) {
         new Sleeve_KE_Employer_Profile();
         new Sleeve_KE_Employer_Applications();
         new Sleeve_KE_Dashboard();
+        new Sleeve_KE_Login();
         // Simple server-side display for debugging and verification (only if available)
         if ( class_exists( 'Sleeve_KE_Job_Display_Simple' ) ) {
             new Sleeve_KE_Job_Display_Simple();
